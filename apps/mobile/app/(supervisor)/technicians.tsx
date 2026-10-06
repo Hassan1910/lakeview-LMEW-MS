@@ -9,14 +9,20 @@ export default function TechniciansScreen() {
   const query = useQuery({
     queryKey: ['technicians'],
     queryFn: async () => {
-      const { data, error } = await db().from('profiles').select('id, full_name, phone, is_active').eq('role', 'technician');
+      const { data, error } = await db().from('profiles').select('id, full_name, phone, is_active').eq('role', 'technician').order('full_name');
       if (error) throw error;
       return data ?? [];
     },
   });
   return (
-    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data?.length} emptyLabel="No technicians.">
-      <FlatList data={query.data} keyExtractor={(item) => item.id} renderItem={({ item }) => <List.Item title={item.full_name} description={`${item.phone ?? ''} · ${item.is_active ? 'active' : 'disabled'}`} />} />
+    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data?.length} emptyLabel="No technicians." onRetry={() => query.refetch()}>
+      <FlatList
+        data={query.data}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <List.Item title={item.full_name} description={[item.phone, item.is_active ? 'Active' : 'Disabled'].filter(Boolean).join(' · ')} style={{ backgroundColor: '#fff' }} />
+        )}
+      />
     </ScreenBody>
   );
 }

@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
+import { Link } from 'expo-router';
+import { kenyanPhoneRegex } from '@lmew/shared-types';
 import { db } from '../../src/lib/db';
+import { friendlyError } from '../../src/lib/format';
+import { FormScreen, Notice } from '../../src/components/ui';
+import { ui } from '../../src/theme';
 
 export default function OtpVerifyScreen() {
   const [phone, setPhone] = useState('+254');
@@ -11,35 +15,40 @@ export default function OtpVerifyScreen() {
   const [loading, setLoading] = useState(false);
 
   const send = async () => {
+    if (!kenyanPhoneRegex.test(phone.trim())) {
+      setError('Enter a valid Kenyan phone number (+254 or 07/01…)');
+      return;
+    }
     setLoading(true);
     setError(null);
-    const { error: otpError } = await db().auth.signInWithOtp({ phone });
+    const { error: otpError } = await db().auth.signInWithOtp({ phone: phone.trim() });
     setLoading(false);
-    if (otpError) setError(otpError.message);
+    if (otpError) setError(friendlyError(otpError.message));
     else setSent(true);
   };
 
   const verify = async () => {
+    if (!/^\d{4,8}$/.test(code.trim())) {
+      setError('Enter the code from the SMS');
+      return;
+    }
     setLoading(true);
-    const { error: verifyError } = await db().auth.verifyOtp({ phone, token: code, type: 'sms' });
+    setError(null);
+    const { error: verifyError } = await db().auth.verifyOtp({ phone: phone.trim(), token: code.trim(), type: 'sms' });
     setLoading(false);
-    if (verifyError) setError(verifyError.message);
+    if (verifyError) setError(friendlyError(verifyError.message));
   };
 
   return (
-    <View style={styles.wrap}>
-      <Text>Optional phone sign-in. Use a +254 number.</Text>
-      <TextInput label="Phone" value={phone} onChangeText={setPhone} mode="outlined" />
-      {sent ? <TextInput label="Code" value={code} onChangeText={setCode} mode="outlined" /> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {sent ? <Text style={styles.ok}>Code sent.</Text> : null}
-      <Button mode="contained" loading={loading} onPress={sent ? verify : send}>{sent ? 'Verify code' : 'Send code'}</Button>
-    </View>
+    <FormScreen>
+      <Text style={ui.muted}>Optional phone sign-in for an account that already has this number.</Text>
+      <TextInput label="Phone" value={phone} onChangeText={setPhone} mode="outlined" keyboardType="phone-pad" />
+      {sent ? <TextInput label="Code" value={code} onChangeText={setCode} mode="outlined" keyboardType="number-pad" /> : null}
+      {error ? <Notice tone="error" text={error} /> : null}
+      {sent ? <Notice tone="ok" text="Code sent." /> : null}
+      <Button mode="contained" loading={loading} disabled={loading} onPress={sent ? verify : send}>{sent ? 'Verify code' : 'Send code'}</Button>
+      {sent ? <Button mode="text" onPress={() => { setSent(false); setCode(''); }}>Use a different number</Button> : null}
+      <Link href="/(auth)/login" asChild><Button mode="text">Back to sign in</Button></Link>
+    </FormScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 16, gap: 12 },
-  error: { color: '#EF4444' },
-  ok: { color: '#22C55E' },
-});

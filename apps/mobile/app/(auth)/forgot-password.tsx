@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, TextInput } from 'react-native-paper';
+import { Link } from 'expo-router';
+import { z } from 'zod';
 import { db } from '../../src/lib/db';
+import { friendlyError } from '../../src/lib/format';
+import { FormScreen, Notice } from '../../src/components/ui';
+
+const emailSchema = z.string().email('Enter the email on your account');
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -10,26 +15,27 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
+    const parsed = emailSchema.safeParse(email.trim());
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Enter a valid email');
+      return;
+    }
     setLoading(true);
     setError(null);
-    const { error: resetError } = await db().auth.resetPasswordForEmail(email.trim());
+    setMessage(null);
+    const { error: resetError } = await db().auth.resetPasswordForEmail(parsed.data);
     setLoading(false);
-    if (resetError) setError(resetError.message);
+    if (resetError) setError(friendlyError(resetError.message));
     else setMessage('If that email is registered, a reset link is on its way.');
   };
 
   return (
-    <View style={styles.wrap}>
-      <TextInput label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" mode="outlined" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {message ? <Text style={styles.ok}>{message}</Text> : null}
-      <Button mode="contained" loading={loading} onPress={submit}>Send reset link</Button>
-    </View>
+    <FormScreen>
+      <TextInput label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" mode="outlined" />
+      {error ? <Notice tone="error" text={error} /> : null}
+      {message ? <Notice tone="ok" text={message} /> : null}
+      <Button mode="contained" loading={loading} disabled={loading} onPress={submit}>Send reset link</Button>
+      <Link href="/(auth)/login" asChild><Button mode="text">Back to sign in</Button></Link>
+    </FormScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { flex: 1, padding: 16, gap: 12 },
-  error: { color: '#EF4444' },
-  ok: { color: '#22C55E' },
-});
