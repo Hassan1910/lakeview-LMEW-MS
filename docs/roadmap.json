@@ -1,0 +1,146 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "roadmap": {
+    "methodology": "Waterfall (per proposal)",
+    "phases": [
+      {
+        "phase": "Problem Identification",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Problem statement finalized",
+          "Stakeholder interviews"
+        ]
+      },
+      {
+        "phase": "Feasibility Study",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Schedule, Operational, Technical, Economic feasibility docs"
+        ]
+      },
+      {
+        "phase": "Project Planning",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Gantt chart",
+          "Budget",
+          "Resource list"
+        ]
+      },
+      {
+        "phase": "System Analysis",
+        "duration_weeks": 2,
+        "deliverables": [
+          "User stories",
+          "Use case diagrams",
+          "Data flow diagrams"
+        ]
+      },
+      {
+        "phase": "System Design",
+        "duration_weeks": 2,
+        "deliverables": [
+          "ERD",
+          "Wireframes",
+          "UI mockups",
+          "API contract"
+        ]
+      },
+      {
+        "phase": "System Development",
+        "duration_weeks": 5,
+        "deliverables": [
+          "Mobile app MVP",
+          "Admin web MVP",
+          "Staff web MVP",
+          "Supabase schema + RLS"
+        ]
+      },
+      {
+        "phase": "Integration & System Testing",
+        "duration_weeks": 2,
+        "deliverables": [
+          "End-to-end tests",
+          "UAT report",
+          "Bug fixes"
+        ]
+      },
+      {
+        "phase": "Implementation",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Deployed prod",
+          "User training",
+          "Handover docs"
+        ]
+      },
+      {
+        "phase": "Maintenance",
+        "duration": "ongoing",
+        "deliverables": [
+          "Monitoring",
+          "Backups",
+          "Iteration backlog"
+        ]
+      }
+    ],
+    "milestones": [
+      {
+        "id": "M1",
+        "name": "Supabase schema + RLS live",
+        "week": 6
+      },
+      {
+        "id": "M2",
+        "name": "Customer mobile MVP",
+        "week": 9
+      },
+      {
+        "id": "M3",
+        "name": "Technician mobile MVP",
+        "week": 10
+      },
+      {
+        "id": "M4",
+        "name": "Admin web MVP",
+        "week": 11
+      },
+      {
+        "id": "M5",
+        "name": "Staff (Vue) MVP",
+        "week": 11
+      },
+      {
+        "id": "M6",
+        "name": "M-Pesa payments live",
+        "week": 12
+      },
+      {
+        "id": "M7",
+        "name": "Reports + PDFs",
+        "week": 12
+      },
+      {
+        "id": "M8",
+        "name": "UAT sign-off",
+        "week": 13
+      },
+      {
+        "id": "M9",
+        "name": "Production deployment",
+        "week": 14
+      }
+    ]
+  }
+}

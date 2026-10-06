@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Lakeview Marine",
+    "slug": "lakeview-marine",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "lmew",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0B4F6C"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ke.co.lakeviewmarine.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B4F6C"
+      },
+      "package": "ke.co.lakeviewmarine.app"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/03441319-8eee-46c1-b4b7-3fb04c2be983"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-updates"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "03441319-8eee-46c1-b4b7-3fb04c2be983"
+      }
+    },
+    "owner": "chizicheza"
+  }
+}

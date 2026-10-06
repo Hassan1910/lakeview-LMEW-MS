@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "architecture": {
+    "high_level": "Three client apps (mobile, admin web, staff web) share one Supabase project and one shared-types package. All business logic that must be trusted (payments, PDF, scheduled jobs) lives in Edge Functions. RLS enforces per-role data access.",
+    "diagram_ascii": [
+      "\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510   \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510   \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
+      "\u2502  Mobile (Expo)   \u2502   \u2502  Admin (React)   \u2502   \u2502  Staff (Vue)     \u2502",
+      "\u2502  Customers/Tech  \u2502   \u2502  Admin/SvcMgr    \u2502   \u2502  Store/Supplier  \u2502",
+      "\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+      "         \u2502                      \u2502                      \u2502",
+      "         \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+      "                    \u2502                      \u2502",
+      "              \u250c\u2500\u2500\u2500\u2500\u2500\u25bc\u2500\u2500\u2500\u2500\u2500\u2500\u2510        \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u25bc\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
+      "              \u2502  Supabase  \u2502\u25c4\u2500\u2500\u2500\u2500\u2500\u2500\u25ba\u2502  Edge Funcs  \u2502",
+      "              \u2502  Auth/DB   \u2502        \u2502 M-Pesa, PDF  \u2502",
+      "              \u2502  Storage   \u2502        \u2502 Cron jobs    \u2502",
+      "              \u2502  Realtime  \u2502        \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+      "              \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
+    ],
+    "environments": {
+      "dev": "Supabase local (supabase start) + Expo dev client",
+      "staging": "Supabase cloud project (staging) + EAS internal build + Vercel previews",
+      "production": "Supabase cloud project (prod) + EAS production build + Vercel prod"
+    },
+    "data_flow_examples": {
+      "service_request_submission": [
+        "Mobile: customer fills form -> zod validation -> insert into service_requests",
+        "Supabase: RLS confirms auth.uid() = customer_id",
+        "Trigger: insert into service_request_status_history with status 'request_received'",
+        "Realtime: broadcast on channel service_request:{id}",
+        "Admin React: subscribes to channel, sees new request instantly",
+        "Service Manager assigns to technician -> work_orders row created",
+        "Mobile: technician receives push notification"
+      ],
+      "payment_flow": [
+        "Customer taps Pay on invoice in mobile",
+        "Mobile calls Edge Function create-mpesa-payment",
+        "Edge Function calls Daraja STK Push",
+        "Daraja callback hits Edge Function mpesa-callback",
+        "Edge Function updates payments + invoices atomically",
+        "Realtime pushes update to customer mobile + Finance dashboard"
+      ]
+    }
+  }
+}

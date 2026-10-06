@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "rls_policies": {
+    "principles": [
+      "Enable RLS on every table.",
+      "Default deny: no policy = no access.",
+      "Use auth.uid() and (select role from profiles where id = auth.uid()) as the primary predicates.",
+      "Never trust client-supplied role; always look it up server-side."
+    ],
+    "policies": [
+      {
+        "table": "profiles",
+        "name": "profiles_select_self_or_admin",
+        "operation": "SELECT",
+        "using": "id = auth.uid() OR public.current_role() IN ('administrator','service_manager','receptionist','supervisor')"
+      },
+      {
+        "table": "profiles",
+        "name": "profiles_update_self",
+        "operation": "UPDATE",
+        "using": "id = auth.uid()"
+      },
+      {
+        "table": "customers",
+        "name": "customers_select_own_or_staff",
+        "operation": "SELECT",
+        "using": "profile_id = auth.uid() OR public.current_role() IN ('administrator','service_manager','finance_manager','receptionist')"
+      },
+      {
+        "table": "customers",
+        "name": "customers_insert_self_or_staff",
+        "operation": "INSERT",
+        "with_check": "profile_id = auth.uid() OR public.current_role() IN ('administrator','receptionist')"
+      },
+      {
+        "table": "vessels",
+        "name": "vessels_customer_own",
+        "operation": "ALL",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()) OR public.current_role() IN ('administrator','service_manager','technician','supervisor')"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_customer_own",
+        "operation": "SELECT",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_customer_create",
+        "operation": "INSERT",
+        "with_check": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_staff_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','service_manager','supervisor','finance_manager')"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_technician_assigned",
+        "operation": "SELECT",
+        "using": "id IN (SELECT service_request_id FROM work_orders WHERE assigned_to = auth.uid())"
+      },
+      {
+        "table": "work_orders",
+        "name": "wo_technician_own",
+        "operation": "SELECT",
+        "using": "assigned_to = auth.uid() OR supervisor_id = auth.uid()"
+      },
+      {
+        "table": "work_orders",
+        "name": "wo_technician_update_status",
+        "operation": "UPDATE",
+        "using": "assigned_to = auth.uid()",
+        "with_check": "assigned_to = auth.uid()"
+      },
+      {
+        "table": "work_orders",
+        "name": "wo_service_manager_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','service_manager','supervisor')"
+      },
+      {
+        "table": "quotations",
+        "name": "q_customer_own",
+        "operation": "SELECT",
+        "using": "service_request_id IN (SELECT id FROM service_requests WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()))"
+      },
+      {
+        "table": "quotations",
+        "name": "q_staff_manage",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','service_manager','finance_manager')"
+      },
+      {
+        "table": "invoices",
+        "name": "inv_customer_own",
+        "operation": "SELECT",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "invoices",
+        "name": "inv_finance_manage",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','finance_manager')"
+      },
+      {
+        "table": "payments",
+        "name": "pay_customer_own",
+        "operation": "SELECT",
+        "using": "invoice_id IN (SELECT id FROM invoices WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()))"
+      },
+      {
+        "table": "payments",
+        "name": "pay_customer_create",
+        "operation": "INSERT",
+        "with_check": "invoice_id IN (SELECT id FROM invoices WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()))"
+      },
+      {
+        "table": "payments",
+        "name": "pay_finance_manage",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','finance_manager')"
+      },
+      {
+        "table": "inventory_items",
+        "name": "inv_items_staff_read",
+        "operation": "SELECT",
+        "using": "public.current_role() IN ('administrator','store_manager','procurement_officer','service_manager','technician','finance_manager','receptionist')"
+      },
+      {
+        "table": "inventory_items",
+        "name": "inv_items_store_write",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','store_manager')"
+      },
+      {
+        "table": "stock_movements",
+        "name": "sm_store_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','store_manager','procurement_officer')"
+      },
+      {
+        "table": "suppliers",
+        "name": "sup_procurement_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','procurement_officer','store_manager')"
+      },
+      {
+        "table": "suppliers",
+        "name": "sup_supplier_self",
+        "operation": "SELECT",
+        "using": "profile_id = auth.uid()"
+      },
+      {
+        "table": "purchase_orders",
+        "name": "po_procurement_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','procurement_officer','store_manager')"
+      },
+      {
+        "table": "purchase_orders",
+        "name": "po_supplier_own",
+        "operation": "SELECT",
+        "using": "supplier_id IN (SELECT id FROM suppliers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "feedback",
+        "name": "fb_customer_own",
+        "operation": "ALL",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "feedback",
+        "name": "fb_staff_read",
+        "operation": "SELECT",
+        "using": "public.current_role() IN ('administrator','service_manager','supervisor')"
+      },
+      {
+        "table": "notifications",
+        "name": "notif_own",
+        "operation": "ALL",
+        "using": "user_id = auth.uid()"
+      },
+      {
+        "table": "messages",
+        "name": "msg_participants",
+        "operation": "SELECT",
+        "using": "service_request_id IN (SELECT id FROM service_requests WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())) OR public.current_role() IN ('administrator','service_manager','supervisor') OR service_request_id IN (SELECT service_request_id FROM work_orders WHERE assigned_to = auth.uid())"
+      },
+      {
+        "table": "messages",
+        "name": "msg_participants_insert",
+        "operation": "INSERT",
+        "with_check": "sender_id = auth.uid()"
+      },
+      {
+        "table": "company_info",
+        "name": "company_read_all",
+        "operation": "SELECT",
+        "using": "true"
+      },
+      {
+        "table": "company_info",
+        "name": "company_write_admin",
+        "operation": "ALL",
+        "using": "public.current_role() = 'administrator'"
+      },
+      {
+        "table": "audit_logs",
+        "name": "audit_admin_read",
+        "operation": "SELECT",
+        "using": "public.current_role() = 'administrator'"
+      }
+    ],
+    "helper_function": {
+      "name": "public.current_role",
+      "returns": "user_role",
+      "body": "SELECT role FROM public.profiles WHERE id = auth.uid()",
+      "security": "SECURITY DEFINER STABLE"
+    }
+  }
+}

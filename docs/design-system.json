@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "design_system": {
+    "brand": {
+      "name": "Lakeview Marine Engineering Works",
+      "tagline": "Reliable Marine Engineering on Lake Victoria"
+    },
+    "colors": {
+      "primary": "#0B4F6C",
+      "primary_dark": "#083A50",
+      "accent": "#01BAEF",
+      "success": "#22C55E",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "neutral_900": "#0F172A",
+      "neutral_700": "#334155",
+      "neutral_500": "#64748B",
+      "neutral_200": "#E2E8F0",
+      "neutral_50": "#F8FAFC",
+      "background_light": "#FFFFFF",
+      "background_dark": "#0F172A"
+    },
+    "typography": {
+      "font_family": "Inter",
+      "sizes": {
+        "xs": 12,
+        "sm": 14,
+        "base": 16,
+        "lg": 18,
+        "xl": 20,
+        "2xl": 24,
+        "3xl": 30
+      },
+      "weights": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      }
+    },
+    "spacing": {
+      "0": 0,
+      "1": 4,
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "5": 20,
+      "6": 24,
+      "8": 32,
+      "10": 40,
+      "12": 48
+    },
+    "radii": {
+      "sm": 4,
+      "md": 8,
+      "lg": 12,
+      "xl": 16,
+      "full": 9999
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15,23,42,0.06)",
+      "md": "0 4px 12px rgba(15,23,42,0.10)",
+      "lg": "0 12px 24px rgba(15,23,42,0.12)"
+    },
+    "status_colors": {
+      "request_received": "#64748B",
+      "inspection_in_progress": "#01BAEF",
+      "quotation_pending": "#F59E0B",
+      "quotation_sent": "#0B4F6C",
+      "awaiting_approval": "#F59E0B",
+      "awaiting_spare_parts": "#F97316",
+      "under_repair": "#8B5CF6",
+      "testing": "#06B6D4",
+      "completed": "#22C55E",
+      "cancelled": "#EF4444"
+    },
+    "iconography": "Lucide (web) + @expo/vector-icons (mobile)"
+  }
+}

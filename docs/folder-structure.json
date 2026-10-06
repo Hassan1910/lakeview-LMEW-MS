@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "folder_structure": {
+    "root": "lmew/",
+    "tree": {
+      "apps": {
+        "mobile": "React Native + Expo app",
+        "admin-web": "React + Vite admin dashboard",
+        "staff-web": "Vue 3 + Vite staff portal"
+      },
+      "packages": {
+        "shared-types": "Generated Supabase types + zod schemas",
+        "supabase-client": "Wrapper for supabase-js (web + RN variants)",
+        "ui-tokens": "Design tokens (colors, spacing) shared across apps"
+      },
+      "supabase": {
+        "migrations": "SQL migration files",
+        "functions": "Edge functions",
+        "seed.sql": "Seed data for local dev"
+      },
+      "docs": "This spec and other project docs",
+      "turbo.json": "Turborepo config",
+      "pnpm-workspace.yaml": "Workspace config"
+    }
+  }
+}

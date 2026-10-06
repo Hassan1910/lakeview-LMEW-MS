@@ -1,0 +1,1267 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "database_schema": {
+    "enums": {
+      "user_role": [
+        "customer",
+        "administrator",
+        "service_manager",
+        "supervisor",
+        "technician",
+        "finance_manager",
+        "store_manager",
+        "procurement_officer",
+        "receptionist",
+        "supplier"
+      ],
+      "service_status": [
+        "request_received",
+        "inspection_in_progress",
+        "quotation_pending",
+        "quotation_sent",
+        "awaiting_approval",
+        "awaiting_spare_parts",
+        "under_repair",
+        "testing",
+        "completed",
+        "cancelled"
+      ],
+      "work_order_status": [
+        "assigned",
+        "in_progress",
+        "blocked",
+        "completed",
+        "cancelled"
+      ],
+      "priority": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "quotation_status": [
+        "draft",
+        "sent",
+        "accepted",
+        "rejected",
+        "expired"
+      ],
+      "invoice_status": [
+        "draft",
+        "issued",
+        "partially_paid",
+        "paid",
+        "overdue",
+        "cancelled"
+      ],
+      "payment_status": [
+        "pending",
+        "confirmed",
+        "failed",
+        "refunded"
+      ],
+      "payment_method": [
+        "mpesa",
+        "bank_transfer",
+        "cash",
+        "card",
+        "cheque"
+      ],
+      "purchase_order_status": [
+        "draft",
+        "sent",
+        "acknowledged",
+        "shipped",
+        "received",
+        "cancelled"
+      ],
+      "stock_movement_type": [
+        "in",
+        "out",
+        "adjustment",
+        "return"
+      ],
+      "vessel_type": [
+        "fishing_boat",
+        "passenger_boat",
+        "cargo_boat",
+        "tugboat",
+        "speedboat",
+        "ferry",
+        "other"
+      ],
+      "service_category": [
+        "boat_repair",
+        "ship_repair",
+        "engine_maintenance",
+        "fabrication",
+        "electrical",
+        "welding",
+        "equipment_supply",
+        "consultation",
+        "other"
+      ],
+      "notification_type": [
+        "service_status",
+        "quotation",
+        "invoice",
+        "payment",
+        "assignment",
+        "low_stock",
+        "feedback",
+        "system"
+      ],
+      "feedback_category": [
+        "service_quality",
+        "timeliness",
+        "communication",
+        "pricing",
+        "technician",
+        "other"
+      ]
+    },
+    "tables": {
+      "profiles": {
+        "description": "One row per authenticated user; extends auth.users.",
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "fk": "auth.users.id",
+            "on_delete": "cascade"
+          },
+          "role": {
+            "type": "user_role",
+            "default": "customer",
+            "not_null": true
+          },
+          "full_name": {
+            "type": "text",
+            "not_null": true
+          },
+          "email": {
+            "type": "text",
+            "unique": true
+          },
+          "phone": {
+            "type": "text",
+            "unique": true
+          },
+          "avatar_url": {
+            "type": "text"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "address": {
+            "type": "text"
+          },
+          "county": {
+            "type": "text"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "role",
+          "email",
+          "phone"
+        ],
+        "trigger": "on auth.users insert -> create profile row (via trigger handle_new_user)"
+      },
+      "customers": {
+        "description": "Extra customer info linked to profiles; receptionist may create without auth account (walk-in).",
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "profile_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "nullable": true,
+            "unique": true
+          },
+          "company_name": {
+            "type": "text"
+          },
+          "kra_pin": {
+            "type": "text"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "vessels": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "name": {
+            "type": "text",
+            "not_null": true
+          },
+          "registration_no": {
+            "type": "text",
+            "unique": true
+          },
+          "type": {
+            "type": "vessel_type"
+          },
+          "length_m": {
+            "type": "numeric(6,2)"
+          },
+          "engine_details": {
+            "type": "text"
+          },
+          "year_built": {
+            "type": "int"
+          },
+          "photo_url": {
+            "type": "text"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "customer_id",
+          "registration_no"
+        ]
+      },
+      "service_requests": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true,
+            "generated": "LMEW-SR-<year>-<seq>"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "vessel_id": {
+            "type": "uuid",
+            "fk": "vessels.id"
+          },
+          "category": {
+            "type": "service_category",
+            "not_null": true
+          },
+          "title": {
+            "type": "text",
+            "not_null": true
+          },
+          "description": {
+            "type": "text",
+            "not_null": true
+          },
+          "priority": {
+            "type": "priority",
+            "default": "medium"
+          },
+          "status": {
+            "type": "service_status",
+            "default": "request_received"
+          },
+          "preferred_date": {
+            "type": "date"
+          },
+          "location_text": {
+            "type": "text"
+          },
+          "location_lat": {
+            "type": "numeric(9,6)"
+          },
+          "location_lng": {
+            "type": "numeric(9,6)"
+          },
+          "assigned_service_manager": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "customer_id",
+          "status",
+          "created_at",
+          "category"
+        ]
+      },
+      "service_request_status_history": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "on_delete": "cascade"
+          },
+          "status": {
+            "type": "service_status",
+            "not_null": true
+          },
+          "note": {
+            "type": "text"
+          },
+          "changed_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id"
+        ]
+      },
+      "service_request_attachments": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "on_delete": "cascade"
+          },
+          "storage_path": {
+            "type": "text",
+            "not_null": true
+          },
+          "file_name": {
+            "type": "text"
+          },
+          "mime_type": {
+            "type": "text"
+          },
+          "uploaded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "work_orders": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "not_null": true
+          },
+          "assigned_to": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "not_null": true
+          },
+          "supervisor_id": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "status": {
+            "type": "work_order_status",
+            "default": "assigned"
+          },
+          "scheduled_start": {
+            "type": "timestamptz"
+          },
+          "scheduled_end": {
+            "type": "timestamptz"
+          },
+          "actual_start": {
+            "type": "timestamptz"
+          },
+          "actual_end": {
+            "type": "timestamptz"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "assigned_to",
+          "status"
+        ]
+      },
+      "work_order_media": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "work_order_id": {
+            "type": "uuid",
+            "fk": "work_orders.id",
+            "on_delete": "cascade"
+          },
+          "storage_path": {
+            "type": "text"
+          },
+          "kind": {
+            "type": "text",
+            "enum": [
+              "before",
+              "after",
+              "progress",
+              "document"
+            ]
+          },
+          "uploaded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "quotations": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "not_null": true
+          },
+          "status": {
+            "type": "quotation_status",
+            "default": "draft"
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "subtotal": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "tax_rate": {
+            "type": "numeric(5,2)",
+            "default": 16
+          },
+          "tax_amount": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "discount": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "total": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "valid_until": {
+            "type": "date"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "status"
+        ]
+      },
+      "quotation_items": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "quotation_id": {
+            "type": "uuid",
+            "fk": "quotations.id",
+            "on_delete": "cascade"
+          },
+          "inventory_item_id": {
+            "type": "uuid",
+            "fk": "inventory_items.id",
+            "nullable": true
+          },
+          "description": {
+            "type": "text",
+            "not_null": true
+          },
+          "quantity": {
+            "type": "numeric(10,2)",
+            "not_null": true
+          },
+          "unit_price": {
+            "type": "numeric(12,2)",
+            "not_null": true
+          },
+          "line_total": {
+            "type": "numeric(12,2)",
+            "generated": "quantity * unit_price"
+          }
+        }
+      },
+      "invoices": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "quotation_id": {
+            "type": "uuid",
+            "fk": "quotations.id"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "status": {
+            "type": "invoice_status",
+            "default": "draft"
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "subtotal": {
+            "type": "numeric(12,2)"
+          },
+          "tax_amount": {
+            "type": "numeric(12,2)"
+          },
+          "total": {
+            "type": "numeric(12,2)"
+          },
+          "amount_paid": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "balance": {
+            "type": "numeric(12,2)",
+            "generated": "total - amount_paid"
+          },
+          "issued_at": {
+            "type": "timestamptz"
+          },
+          "due_at": {
+            "type": "timestamptz"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "customer_id",
+          "status",
+          "due_at"
+        ]
+      },
+      "payments": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "invoice_id": {
+            "type": "uuid",
+            "fk": "invoices.id",
+            "not_null": true
+          },
+          "amount": {
+            "type": "numeric(12,2)",
+            "not_null": true
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "method": {
+            "type": "payment_method",
+            "not_null": true
+          },
+          "status": {
+            "type": "payment_status",
+            "default": "pending"
+          },
+          "reference": {
+            "type": "text"
+          },
+          "mpesa_receipt": {
+            "type": "text"
+          },
+          "paid_at": {
+            "type": "timestamptz"
+          },
+          "recorded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "raw_payload": {
+            "type": "jsonb"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "invoice_id",
+          "status",
+          "mpesa_receipt"
+        ]
+      },
+      "suppliers": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "name": {
+            "type": "text",
+            "not_null": true
+          },
+          "contact_person": {
+            "type": "text"
+          },
+          "phone": {
+            "type": "text"
+          },
+          "email": {
+            "type": "text"
+          },
+          "address": {
+            "type": "text"
+          },
+          "category": {
+            "type": "text"
+          },
+          "payment_terms": {
+            "type": "text"
+          },
+          "rating": {
+            "type": "numeric(3,2)"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "profile_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "inventory_categories": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "name": {
+            "type": "text",
+            "unique": true,
+            "not_null": true
+          },
+          "description": {
+            "type": "text"
+          }
+        }
+      },
+      "inventory_items": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "sku": {
+            "type": "text",
+            "unique": true,
+            "not_null": true
+          },
+          "name": {
+            "type": "text",
+            "not_null": true
+          },
+          "category_id": {
+            "type": "uuid",
+            "fk": "inventory_categories.id"
+          },
+          "description": {
+            "type": "text"
+          },
+          "unit": {
+            "type": "text",
+            "default": "pcs"
+          },
+          "unit_cost": {
+            "type": "numeric(12,2)"
+          },
+          "unit_price": {
+            "type": "numeric(12,2)"
+          },
+          "quantity_on_hand": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "reorder_level": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "location": {
+            "type": "text"
+          },
+          "image_url": {
+            "type": "text"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "sku",
+          "category_id",
+          "quantity_on_hand"
+        ]
+      },
+      "stock_movements": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "inventory_item_id": {
+            "type": "uuid",
+            "fk": "inventory_items.id",
+            "not_null": true
+          },
+          "type": {
+            "type": "stock_movement_type",
+            "not_null": true
+          },
+          "quantity": {
+            "type": "numeric(12,2)",
+            "not_null": true
+          },
+          "reference": {
+            "type": "text"
+          },
+          "reason": {
+            "type": "text"
+          },
+          "related_work_order_id": {
+            "type": "uuid",
+            "fk": "work_orders.id",
+            "nullable": true
+          },
+          "related_po_id": {
+            "type": "uuid",
+            "fk": "purchase_orders.id",
+            "nullable": true
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "inventory_item_id",
+          "created_at"
+        ]
+      },
+      "purchase_orders": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "supplier_id": {
+            "type": "uuid",
+            "fk": "suppliers.id",
+            "not_null": true
+          },
+          "status": {
+            "type": "purchase_order_status",
+            "default": "draft"
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "total": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "expected_date": {
+            "type": "date"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "approved_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "purchase_order_items": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "purchase_order_id": {
+            "type": "uuid",
+            "fk": "purchase_orders.id",
+            "on_delete": "cascade"
+          },
+          "inventory_item_id": {
+            "type": "uuid",
+            "fk": "inventory_items.id"
+          },
+          "description": {
+            "type": "text"
+          },
+          "quantity": {
+            "type": "numeric(12,2)"
+          },
+          "unit_cost": {
+            "type": "numeric(12,2)"
+          },
+          "line_total": {
+            "type": "numeric(12,2)",
+            "generated": "quantity * unit_cost"
+          }
+        }
+      },
+      "feedback": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "rating": {
+            "type": "int",
+            "check": "rating BETWEEN 1 AND 5"
+          },
+          "category": {
+            "type": "feedback_category"
+          },
+          "comment": {
+            "type": "text"
+          },
+          "response": {
+            "type": "text"
+          },
+          "responded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "rating"
+        ]
+      },
+      "notifications": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "user_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "not_null": true
+          },
+          "type": {
+            "type": "notification_type",
+            "not_null": true
+          },
+          "title": {
+            "type": "text",
+            "not_null": true
+          },
+          "body": {
+            "type": "text"
+          },
+          "data": {
+            "type": "jsonb"
+          },
+          "read_at": {
+            "type": "timestamptz"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "user_id",
+          "read_at",
+          "created_at"
+        ]
+      },
+      "messages": {
+        "description": "Threaded messages between customer and assigned staff on a service request.",
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "on_delete": "cascade"
+          },
+          "sender_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "not_null": true
+          },
+          "body": {
+            "type": "text"
+          },
+          "attachment_url": {
+            "type": "text"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "created_at"
+        ]
+      },
+      "audit_logs": {
+        "columns": {
+          "id": {
+            "type": "bigserial",
+            "pk": true
+          },
+          "actor_id": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "action": {
+            "type": "text"
+          },
+          "entity": {
+            "type": "text"
+          },
+          "entity_id": {
+            "type": "uuid"
+          },
+          "before": {
+            "type": "jsonb"
+          },
+          "after": {
+            "type": "jsonb"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "company_info": {
+        "description": "Single-row table for About Us / Contact Us content.",
+        "columns": {
+          "id": {
+            "type": "int",
+            "pk": true,
+            "default": 1
+          },
+          "name": {
+            "type": "text",
+            "default": "Lakeview Marine Engineering Works"
+          },
+          "about": {
+            "type": "text"
+          },
+          "mission": {
+            "type": "text"
+          },
+          "vision": {
+            "type": "text"
+          },
+          "phone": {
+            "type": "text"
+          },
+          "email": {
+            "type": "text"
+          },
+          "address": {
+            "type": "text"
+          },
+          "latitude": {
+            "type": "numeric(9,6)"
+          },
+          "longitude": {
+            "type": "numeric(9,6)"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      }
+    },
+    "storage_buckets": {
+      "avatars": {
+        "public": true,
+        "path_pattern": "{user_id}/avatar.{ext}"
+      },
+      "vessel-photos": {
+        "public": false,
+        "path_pattern": "{customer_id}/{vessel_id}/{filename}"
+      },
+      "service-attachments": {
+        "public": false,
+        "path_pattern": "{service_request_id}/{filename}"
+      },
+      "work-order-media": {
+        "public": false,
+        "path_pattern": "{work_order_id}/{filename}"
+      },
+      "quotation-pdfs": {
+        "public": false,
+        "path_pattern": "{quotation_id}/{filename}"
+      },
+      "invoice-pdfs": {
+        "public": false,
+        "path_pattern": "{invoice_id}/{filename}"
+      },
+      "reports": {
+        "public": false,
+        "path_pattern": "{user_id}/{report_id}.{ext}"
+      }
+    },
+    "functions_and_triggers": [
+      {
+        "name": "handle_new_user",
+        "type": "trigger",
+        "on": "auth.users insert",
+        "action": "create profiles row"
+      },
+      {
+        "name": "set_updated_at",
+        "type": "trigger",
+        "on": "any table with updated_at",
+        "action": "set updated_at = now()"
+      },
+      {
+        "name": "log_status_change",
+        "type": "trigger",
+        "on": "service_requests update of status",
+        "action": "insert into service_request_status_history"
+      },
+      {
+        "name": "generate_service_request_code",
+        "type": "trigger",
+        "on": "service_requests insert",
+        "action": "assign code like LMEW-SR-2025-0001"
+      },
+      {
+        "name": "generate_invoice_code",
+        "type": "trigger",
+        "on": "invoices insert",
+        "action": "assign code like LMEW-INV-2025-0001"
+      },
+      {
+        "name": "decrement_stock_on_work_order_part",
+        "type": "trigger",
+        "on": "work_order_parts insert",
+        "action": "insert stock_movement out + update inventory quantity"
+      },
+      {
+        "name": "notify_low_stock",
+        "type": "trigger",
+        "on": "inventory_items update",
+        "action": "if quantity_on_hand <= reorder_level -> insert notifications for store_manager + administrator"
+      },
+      {
+        "name": "recalc_quotation_totals",
+        "type": "trigger",
+        "on": "quotation_items insert/update/delete",
+        "action": "recalculate quotations.subtotal, tax, total"
+      },
+      {
+        "name": "recalc_invoice_balance",
+        "type": "trigger",
+        "on": "payments insert/update",
+        "action": "recalculate invoices.amount_paid and status"
+      }
+    ]
+  }
+}

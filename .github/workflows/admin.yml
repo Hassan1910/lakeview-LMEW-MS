@@ -1,0 +1,40 @@
+name: admin
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @lmew/shared-types build && pnpm --filter @lmew/supabase-client build && pnpm --filter @lmew/ui-tokens build
+      - run: pnpm --filter @lmew/shared-types lint
+      - run: pnpm --filter @lmew/shared-types test
+      - run: pnpm --filter @lmew/admin-web lint
+      - run: pnpm --filter @lmew/admin-web typecheck
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/admin-web
+      - run: pnpm exec playwright test
+        working-directory: apps/admin-web
+      - name: Deploy
+        if: github.ref == 'refs/heads/main'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+        working-directory: apps/admin-web
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then npx vercel deploy --prod --yes --token "$VERCEL_TOKEN"; else echo "VERCEL_TOKEN is not set; deploy skipped"; fi

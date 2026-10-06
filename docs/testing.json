@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "testing": {
+    "strategy": "Acceptance testing (per proposal) plus layered automated testing.",
+    "layers": {
+      "unit": {
+        "tools": [
+          "Jest",
+          "Vitest"
+        ],
+        "coverage_target": ">= 70%"
+      },
+      "component": {
+        "tools": [
+          "React Native Testing Library",
+          "React Testing Library",
+          "Vue Test Utils"
+        ]
+      },
+      "integration": {
+        "tools": [
+          "Supabase local + pgTAP for RLS",
+          "Supertest for edge functions"
+        ]
+      },
+      "e2e": {
+        "tools": [
+          "Maestro (mobile)",
+          "Playwright (web)"
+        ]
+      },
+      "security": {
+        "tools": [
+          "Supabase RLS test suite",
+          "OWASP ZAP baseline"
+        ]
+      }
+    },
+    "critical_test_cases": [
+      "Customer cannot read another customer's service requests (RLS).",
+      "Technician can only update work orders assigned to them.",
+      "Store manager sees low-stock notification after stock drops below reorder level.",
+      "Invoice balance updates after M-Pesa payment callback.",
+      "Quotation totals recalculate when line items change.",
+      "Realtime status change appears on customer mobile within 2 seconds.",
+      "Disabled account cannot log in."
+    ],
+    "acceptance_criteria": [
+      "All specific objectives (1.4.2) demonstrably met.",
+      "End-to-end flow: create request -> assign -> quote -> approve -> work -> invoice -> pay -> feedback.",
+      "No P1 bugs open at UAT sign-off.",
+      "Page load < 3s on 3G for mobile.",
+      "All PDFs render correctly with company branding."
+    ]
+  }
+}

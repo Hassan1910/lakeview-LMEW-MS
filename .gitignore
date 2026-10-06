@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+.output
+.next
+.expo
+.turbo
+
+# Environment variables
+.env
+.env.local
+*.local
+
+# Test output
+test-results
+playwright-report
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db

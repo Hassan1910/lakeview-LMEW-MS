@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "deployment": {
+    "mobile": {
+      "tool": "EAS Build + EAS Submit",
+      "channels": [
+        "development",
+        "preview",
+        "production"
+      ],
+      "stores": [
+        "Google Play",
+        "Apple App Store"
+      ],
+      "ota_updates": "expo-updates enabled for JS-only patches"
+    },
+    "admin_web": {
+      "host": "Vercel",
+      "project": "lmew-admin",
+      "framework_preset": "Vite"
+    },
+    "staff_web": {
+      "host": "Vercel",
+      "project": "lmew-staff",
+      "framework_preset": "Vite"
+    },
+    "backend": {
+      "host": "Supabase Cloud",
+      "migrations": "supabase/migrations/*.sql versioned in git",
+      "functions": "supabase functions deploy <name>",
+      "secrets": [
+        "MPESA_CONSUMER_KEY",
+        "MPESA_CONSUMER_SECRET",
+        "MPESA_SHORTCODE",
+        "MPESA_PASSKEY",
+        "MPESA_ENV",
+        "EXPO_ACCESS_TOKEN"
+      ],
+      "backups": "Supabase daily PITR (Pro plan)"
+    },
+    "ci_cd": {
+      "provider": "GitHub Actions",
+      "workflows": [
+        ".github/workflows/mobile.yml -> lint, typecheck, jest, eas build --profile preview on PR, production on tag",
+        ".github/workflows/admin.yml -> lint, typecheck, vitest, playwright, deploy to Vercel",
+        ".github/workflows/staff.yml -> lint, typecheck, vitest, playwright, deploy to Vercel",
+        ".github/workflows/supabase.yml -> supabase db push on main, functions deploy"
+      ]
+    }
+  }
+}

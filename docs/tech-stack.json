@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "tech_stack": {
+    "backend": {
+      "provider": "Supabase",
+      "components": {
+        "database": "PostgreSQL 15 (Supabase managed)",
+        "auth": "Supabase Auth (email/password, phone OTP optional)",
+        "storage": "Supabase Storage",
+        "realtime": "Supabase Realtime (Postgres Changes + Broadcast)",
+        "edge_functions": "Deno-based Supabase Edge Functions (for payments webhook, PDF generation, scheduled low-stock checks)",
+        "row_level_security": true
+      }
+    },
+    "mobile_app": {
+      "framework": "React Native",
+      "tooling": "Expo (SDK 51+)",
+      "router": "expo-router",
+      "language": "TypeScript",
+      "ui": "React Native Paper + custom theme",
+      "notifications": "expo-notifications + Supabase Realtime",
+      "storage_local": "expo-secure-store + AsyncStorage",
+      "payments": "M-Pesa Daraja API (via Supabase Edge Function) + Stripe optional",
+      "target_os": [
+        "Android 4.0+ (practical: Android 8+)",
+        "iOS 13+"
+      ],
+      "build": "EAS Build"
+    },
+    "admin_web": {
+      "framework": "React 18",
+      "build_tool": "Vite",
+      "language": "TypeScript",
+      "router": "react-router-dom v6",
+      "ui": "shadcn/ui + TailwindCSS",
+      "charts": "Recharts",
+      "tables": "TanStack Table",
+      "forms": "react-hook-form + zod"
+    },
+    "staff_web": {
+      "framework": "Vue 3 (Composition API)",
+      "build_tool": "Vite",
+      "language": "TypeScript",
+      "router": "vue-router 4",
+      "ui": "PrimeVue + TailwindCSS",
+      "charts": "Chart.js + vue-chartjs",
+      "forms": "vee-validate + zod"
+    },
+    "shared": {
+      "types": "packages/shared-types (generated from Supabase via supabase gen types typescript)",
+      "validators": "zod schemas shared across all clients",
+      "supabase_client": "packages/supabase-client (thin wrapper)",
+      "monorepo": "pnpm workspaces + Turborepo"
+    }
+  }
+}

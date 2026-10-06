@@ -1,0 +1,150 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "admin_web_spec": {
+    "platform": "React + Vite + TypeScript",
+    "audience": [
+      "administrator",
+      "service_manager",
+      "finance_manager"
+    ],
+    "layout": "Sidebar + topbar + content; collapsible sidebar; dark/light mode",
+    "routes": [
+      {
+        "path": "/login",
+        "component": "LoginPage"
+      },
+      {
+        "path": "/dashboard",
+        "component": "DashboardPage",
+        "widgets": [
+          "KPI cards (open requests, revenue MTD, jobs today, low stock count)",
+          "recent activity feed",
+          "charts: requests by status, revenue trend"
+        ]
+      },
+      {
+        "path": "/users",
+        "component": "UsersPage",
+        "capabilities": [
+          "list profiles",
+          "filter by role",
+          "approve/disable account",
+          "change role",
+          "reset password"
+        ]
+      },
+      {
+        "path": "/customers",
+        "component": "CustomersPage"
+      },
+      {
+        "path": "/vessels",
+        "component": "VesselsPage"
+      },
+      {
+        "path": "/service-requests",
+        "component": "ServiceRequestsPage",
+        "capabilities": [
+          "list with filters (status, category, priority, date)",
+          "assign service manager",
+          "change status",
+          "view detail drawer"
+        ]
+      },
+      {
+        "path": "/service-requests/:id",
+        "component": "ServiceRequestDetailPage",
+        "widgets": [
+          "full timeline",
+          "attachments",
+          "quotation editor",
+          "invoice panel",
+          "messages",
+          "assign technicians"
+        ]
+      },
+      {
+        "path": "/work-orders",
+        "component": "WorkOrdersPage"
+      },
+      {
+        "path": "/work-orders/:id",
+        "component": "WorkOrderDetailPage"
+      },
+      {
+        "path": "/quotations",
+        "component": "QuotationsPage"
+      },
+      {
+        "path": "/invoices",
+        "component": "InvoicesPage"
+      },
+      {
+        "path": "/payments",
+        "component": "PaymentsPage",
+        "capabilities": [
+          "verify payment",
+          "record manual payment",
+          "refund"
+        ]
+      },
+      {
+        "path": "/reports",
+        "component": "ReportsPage",
+        "widgets": [
+          "service report",
+          "financial report",
+          "technician performance",
+          "inventory report",
+          "customer feedback report",
+          "export CSV/PDF"
+        ]
+      },
+      {
+        "path": "/feedback",
+        "component": "FeedbackPage",
+        "capabilities": [
+          "view ratings",
+          "respond to feedback"
+        ]
+      },
+      {
+        "path": "/notifications",
+        "component": "NotificationsPage"
+      },
+      {
+        "path": "/company",
+        "component": "CompanyInfoPage",
+        "capabilities": [
+          "edit About Us / Contact Us"
+        ]
+      },
+      {
+        "path": "/audit",
+        "component": "AuditLogPage",
+        "role": "administrator"
+      },
+      {
+        "path": "/settings",
+        "component": "SettingsPage"
+      }
+    ],
+    "realtime_subscriptions": [
+      "service_requests (all inserts/updates)",
+      "payments inserts",
+      "work_orders updates",
+      "inventory_items low-stock updates"
+    ]
+  }
+}

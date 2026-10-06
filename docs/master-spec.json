@@ -1,0 +1,3094 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "ai_agent_instructions": {
+    "primary_goal": "Generate a production-ready, modular codebase implementing the LMEW Management System exactly as specified in this JSON. Do not invent features not listed. If a field is missing, prefer minimal sensible defaults and flag it.",
+    "code_style": {
+      "language_web": "TypeScript (strict mode)",
+      "language_mobile": "TypeScript (strict mode)",
+      "formatting": "Prettier defaults",
+      "linting": "ESLint + @typescript-eslint",
+      "naming_conventions": {
+        "files_components": "PascalCase.tsx / .vue",
+        "files_utils": "camelCase.ts",
+        "folders": "kebab-case",
+        "database_tables": "snake_case",
+        "database_columns": "snake_case",
+        "env_vars": "SCREAMING_SNAKE_CASE"
+      },
+      "state_management": {
+        "react_mobile": "Zustand + React Query (@tanstack/react-query)",
+        "react_web": "Zustand + React Query",
+        "vue_web": "Pinia + Vue Query (@tanstack/vue-query)"
+      },
+      "ui_libraries": {
+        "react_native": "React Native Paper + Expo Router + react-native-calendars",
+        "react_web": "shadcn/ui + TailwindCSS + Recharts",
+        "vue_web": "PrimeVue + TailwindCSS + Chart.js"
+      }
+    },
+    "file_split": {
+      "note": "If the AI agent needs smaller files, split this JSON into these filenames.",
+      "mapping": {
+        "prd": "docs/prd.json",
+        "tech_stack": "docs/tech-stack.json",
+        "architecture": "docs/architecture.json",
+        "database_schema": "docs/db-schema.json",
+        "rls_policies": "docs/rls-policies.json",
+        "mobile_app_spec": "docs/mobile-spec.json",
+        "admin_web_spec": "docs/admin-spec.json",
+        "staff_portal_spec": "docs/staff-spec.json",
+        "design_system": "docs/design-system.json",
+        "roadmap": "docs/roadmap.json",
+        "testing": "docs/testing.json",
+        "deployment": "docs/deployment.json",
+        "env_variables": "docs/env.json",
+        "folder_structure": "docs/folder-structure.json"
+      }
+    },
+    "constraints": [
+      "Do NOT use Firebase. Backend is Supabase only.",
+      "All authentication via Supabase Auth (email/password + optional phone OTP).",
+      "All file uploads go to Supabase Storage buckets named in this spec.",
+      "Realtime updates must use Supabase Realtime channels, not polling.",
+      "Do NOT hardcode secrets; read from environment variables listed in env_variables.",
+      "Follow RLS policies in rls_policies \u2014 never bypass with service_role in client code.",
+      "Every screen must have loading, empty, error, and success states.",
+      "Support both Android and iOS for mobile. Web targets Chrome/Edge/Firefox latest."
+    ]
+  },
+  "prd": {
+    "product_name": "Lakeview Marine Engineering Works Management System",
+    "vision": "A centralized digital platform that automates service requests, project tracking, inventory, invoicing, payments, and reporting for a marine engineering company operating on Lake Victoria, while giving customers a mobile-first way to request services and monitor progress.",
+    "problem_statement": {
+      "current_state": [
+        "Manual recording of customer requests and service orders",
+        "Difficulty tracking ongoing repair and maintenance projects",
+        "Inefficient communication between customers and technicians",
+        "Delays in generating quotations and invoices",
+        "Poor inventory management of spare parts and equipment",
+        "Difficulty generating accurate reports for management",
+        "No online platform for customers to request services or track progress",
+        "Customers far from premises must physically visit or call"
+      ],
+      "desired_state": [
+        "Customers submit and track service requests digitally",
+        "Real-time project status: Request Received, Inspection in Progress, Awaiting Spare Parts, Under Repair, Completed",
+        "Automatic quotation and invoice generation",
+        "Centralized inventory with low-stock alerts",
+        "Role-based dashboards for all staff",
+        "One-click management reports (PDF/CSV)"
+      ]
+    },
+    "goals": {
+      "general": "Develop a mobile application and supporting web dashboards for Lakeview Marine Engineering Works.",
+      "specific": [
+        "Develop a database module for Lakeview Marine Engineering Works.",
+        "Create an administrator web interface for Lakeview Marine Engineering Works.",
+        "Develop a mobile application for front-end users (customers, technicians, supervisors).",
+        "Create a module for generating reports for Lakeview Marine Engineering Works."
+      ]
+    },
+    "success_metrics": [
+      {
+        "metric": "Average service request submission time",
+        "target": "< 2 minutes"
+      },
+      {
+        "metric": "Quotation generation time",
+        "target": "< 30 seconds after inspection"
+      },
+      {
+        "metric": "Reduction in paper records",
+        "target": ">= 80% within 6 months"
+      },
+      {
+        "metric": "Customer satisfaction (in-app rating)",
+        "target": ">= 4.2 / 5"
+      },
+      {
+        "metric": "Low-stock alerts resolved before stockout",
+        "target": ">= 90%"
+      }
+    ],
+    "non_goals": [
+      "No native desktop app",
+      "No IoT/sensor integration in v1",
+      "No multi-tenant SaaS in v1 (single company)",
+      "No offline-first full sync in v1 (basic read cache only)"
+    ],
+    "target_users": [
+      "Customers (vessel owners, fishermen, transport operators)",
+      "Administrator",
+      "Service Manager",
+      "Supervisor",
+      "Technician / Engineer",
+      "Finance Manager",
+      "Store Manager",
+      "Procurement Officer",
+      "Receptionist",
+      "Supplier"
+    ]
+  },
+  "tech_stack": {
+    "backend": {
+      "provider": "Supabase",
+      "components": {
+        "database": "PostgreSQL 15 (Supabase managed)",
+        "auth": "Supabase Auth (email/password, phone OTP optional)",
+        "storage": "Supabase Storage",
+        "realtime": "Supabase Realtime (Postgres Changes + Broadcast)",
+        "edge_functions": "Deno-based Supabase Edge Functions (for payments webhook, PDF generation, scheduled low-stock checks)",
+        "row_level_security": true
+      }
+    },
+    "mobile_app": {
+      "framework": "React Native",
+      "tooling": "Expo (SDK 51+)",
+      "router": "expo-router",
+      "language": "TypeScript",
+      "ui": "React Native Paper + custom theme",
+      "notifications": "expo-notifications + Supabase Realtime",
+      "storage_local": "expo-secure-store + AsyncStorage",
+      "payments": "M-Pesa Daraja API (via Supabase Edge Function) + Stripe optional",
+      "target_os": [
+        "Android 4.0+ (practical: Android 8+)",
+        "iOS 13+"
+      ],
+      "build": "EAS Build"
+    },
+    "admin_web": {
+      "framework": "React 18",
+      "build_tool": "Vite",
+      "language": "TypeScript",
+      "router": "react-router-dom v6",
+      "ui": "shadcn/ui + TailwindCSS",
+      "charts": "Recharts",
+      "tables": "TanStack Table",
+      "forms": "react-hook-form + zod"
+    },
+    "staff_web": {
+      "framework": "Vue 3 (Composition API)",
+      "build_tool": "Vite",
+      "language": "TypeScript",
+      "router": "vue-router 4",
+      "ui": "PrimeVue + TailwindCSS",
+      "charts": "Chart.js + vue-chartjs",
+      "forms": "vee-validate + zod"
+    },
+    "shared": {
+      "types": "packages/shared-types (generated from Supabase via supabase gen types typescript)",
+      "validators": "zod schemas shared across all clients",
+      "supabase_client": "packages/supabase-client (thin wrapper)",
+      "monorepo": "pnpm workspaces + Turborepo"
+    }
+  },
+  "system_architecture": {
+    "high_level": "Three client apps (mobile, admin web, staff web) share one Supabase project and one shared-types package. All business logic that must be trusted (payments, PDF, scheduled jobs) lives in Edge Functions. RLS enforces per-role data access.",
+    "diagram_ascii": [
+      "\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510   \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510   \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
+      "\u2502  Mobile (Expo)   \u2502   \u2502  Admin (React)   \u2502   \u2502  Staff (Vue)     \u2502",
+      "\u2502  Customers/Tech  \u2502   \u2502  Admin/SvcMgr    \u2502   \u2502  Store/Supplier  \u2502",
+      "\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518   \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+      "         \u2502                      \u2502                      \u2502",
+      "         \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+      "                    \u2502                      \u2502",
+      "              \u250c\u2500\u2500\u2500\u2500\u2500\u25bc\u2500\u2500\u2500\u2500\u2500\u2500\u2510        \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u25bc\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510",
+      "              \u2502  Supabase  \u2502\u25c4\u2500\u2500\u2500\u2500\u2500\u2500\u25ba\u2502  Edge Funcs  \u2502",
+      "              \u2502  Auth/DB   \u2502        \u2502 M-Pesa, PDF  \u2502",
+      "              \u2502  Storage   \u2502        \u2502 Cron jobs    \u2502",
+      "              \u2502  Realtime  \u2502        \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518",
+      "              \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518"
+    ],
+    "environments": {
+      "dev": "Supabase local (supabase start) + Expo dev client",
+      "staging": "Supabase cloud project (staging) + EAS internal build + Vercel previews",
+      "production": "Supabase cloud project (prod) + EAS production build + Vercel prod"
+    },
+    "data_flow_examples": {
+      "service_request_submission": [
+        "Mobile: customer fills form -> zod validation -> insert into service_requests",
+        "Supabase: RLS confirms auth.uid() = customer_id",
+        "Trigger: insert into service_request_status_history with status 'request_received'",
+        "Realtime: broadcast on channel service_request:{id}",
+        "Admin React: subscribes to channel, sees new request instantly",
+        "Service Manager assigns to technician -> work_orders row created",
+        "Mobile: technician receives push notification"
+      ],
+      "payment_flow": [
+        "Customer taps Pay on invoice in mobile",
+        "Mobile calls Edge Function create-mpesa-payment",
+        "Edge Function calls Daraja STK Push",
+        "Daraja callback hits Edge Function mpesa-callback",
+        "Edge Function updates payments + invoices atomically",
+        "Realtime pushes update to customer mobile + Finance dashboard"
+      ]
+    }
+  },
+  "user_roles_and_permissions": {
+    "roles": [
+      {
+        "id": "customer",
+        "label": "Customer",
+        "clients": [
+          "mobile"
+        ],
+        "capabilities": [
+          "auth.signup",
+          "auth.login",
+          "profile.manage_own",
+          "vessels.manage_own",
+          "service_requests.create_own",
+          "service_requests.read_own",
+          "service_requests.track_status_own",
+          "quotations.read_own",
+          "invoices.read_own",
+          "payments.create_own",
+          "feedback.create_own",
+          "notifications.read_own"
+        ]
+      },
+      {
+        "id": "administrator",
+        "label": "Administrator",
+        "clients": [
+          "admin_web"
+        ],
+        "capabilities": [
+          "*"
+        ]
+      },
+      {
+        "id": "service_manager",
+        "label": "Service Manager",
+        "clients": [
+          "admin_web"
+        ],
+        "capabilities": [
+          "service_requests.read_all",
+          "service_requests.assign",
+          "service_requests.update_status",
+          "work_orders.create",
+          "work_orders.read_all",
+          "quotations.create",
+          "quotations.read_all",
+          "customers.read_all",
+          "technicians.read_all"
+        ]
+      },
+      {
+        "id": "supervisor",
+        "label": "Supervisor",
+        "clients": [
+          "mobile",
+          "admin_web"
+        ],
+        "capabilities": [
+          "work_orders.read_assigned_team",
+          "technicians.read_team",
+          "reports.technician_performance",
+          "service_requests.read_all"
+        ]
+      },
+      {
+        "id": "technician",
+        "label": "Technician / Engineer",
+        "clients": [
+          "mobile"
+        ],
+        "capabilities": [
+          "work_orders.read_own",
+          "work_orders.update_status_own",
+          "service_requests.read_assigned",
+          "attachments.upload_work_order",
+          "inventory.request_parts"
+        ]
+      },
+      {
+        "id": "finance_manager",
+        "label": "Finance Manager",
+        "clients": [
+          "admin_web"
+        ],
+        "capabilities": [
+          "invoices.read_all",
+          "invoices.create",
+          "invoices.update",
+          "payments.read_all",
+          "payments.verify",
+          "reports.financial",
+          "quotations.read_all"
+        ]
+      },
+      {
+        "id": "store_manager",
+        "label": "Store Manager",
+        "clients": [
+          "staff_web"
+        ],
+        "capabilities": [
+          "inventory.read_all",
+          "inventory.create",
+          "inventory.update",
+          "inventory.adjust",
+          "stock_movements.read_all",
+          "stock_movements.create",
+          "purchase_orders.read_all",
+          "purchase_orders.create",
+          "reports.inventory"
+        ]
+      },
+      {
+        "id": "procurement_officer",
+        "label": "Procurement Officer",
+        "clients": [
+          "staff_web"
+        ],
+        "capabilities": [
+          "suppliers.read_all",
+          "suppliers.create",
+          "suppliers.update",
+          "purchase_orders.read_all",
+          "purchase_orders.create",
+          "purchase_orders.approve",
+          "inventory.read_all"
+        ]
+      },
+      {
+        "id": "receptionist",
+        "label": "Receptionist",
+        "clients": [
+          "staff_web"
+        ],
+        "capabilities": [
+          "customers.create",
+          "customers.read_all",
+          "customers.update",
+          "service_requests.create_on_behalf",
+          "appointments.create",
+          "appointments.read_all"
+        ]
+      },
+      {
+        "id": "supplier",
+        "label": "Supplier",
+        "clients": [
+          "staff_web"
+        ],
+        "capabilities": [
+          "purchase_orders.read_own",
+          "purchase_orders.update_status_own",
+          "profile.manage_own"
+        ]
+      }
+    ],
+    "role_storage": {
+      "table": "profiles",
+      "column": "role",
+      "type": "enum user_role",
+      "values": [
+        "customer",
+        "administrator",
+        "service_manager",
+        "supervisor",
+        "technician",
+        "finance_manager",
+        "store_manager",
+        "procurement_officer",
+        "receptionist",
+        "supplier"
+      ],
+      "enforcement": "Postgres enum + RLS policies + client-side guards"
+    }
+  },
+  "database_schema": {
+    "enums": {
+      "user_role": [
+        "customer",
+        "administrator",
+        "service_manager",
+        "supervisor",
+        "technician",
+        "finance_manager",
+        "store_manager",
+        "procurement_officer",
+        "receptionist",
+        "supplier"
+      ],
+      "service_status": [
+        "request_received",
+        "inspection_in_progress",
+        "quotation_pending",
+        "quotation_sent",
+        "awaiting_approval",
+        "awaiting_spare_parts",
+        "under_repair",
+        "testing",
+        "completed",
+        "cancelled"
+      ],
+      "work_order_status": [
+        "assigned",
+        "in_progress",
+        "blocked",
+        "completed",
+        "cancelled"
+      ],
+      "priority": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "quotation_status": [
+        "draft",
+        "sent",
+        "accepted",
+        "rejected",
+        "expired"
+      ],
+      "invoice_status": [
+        "draft",
+        "issued",
+        "partially_paid",
+        "paid",
+        "overdue",
+        "cancelled"
+      ],
+      "payment_status": [
+        "pending",
+        "confirmed",
+        "failed",
+        "refunded"
+      ],
+      "payment_method": [
+        "mpesa",
+        "bank_transfer",
+        "cash",
+        "card",
+        "cheque"
+      ],
+      "purchase_order_status": [
+        "draft",
+        "sent",
+        "acknowledged",
+        "shipped",
+        "received",
+        "cancelled"
+      ],
+      "stock_movement_type": [
+        "in",
+        "out",
+        "adjustment",
+        "return"
+      ],
+      "vessel_type": [
+        "fishing_boat",
+        "passenger_boat",
+        "cargo_boat",
+        "tugboat",
+        "speedboat",
+        "ferry",
+        "other"
+      ],
+      "service_category": [
+        "boat_repair",
+        "ship_repair",
+        "engine_maintenance",
+        "fabrication",
+        "electrical",
+        "welding",
+        "equipment_supply",
+        "consultation",
+        "other"
+      ],
+      "notification_type": [
+        "service_status",
+        "quotation",
+        "invoice",
+        "payment",
+        "assignment",
+        "low_stock",
+        "feedback",
+        "system"
+      ],
+      "feedback_category": [
+        "service_quality",
+        "timeliness",
+        "communication",
+        "pricing",
+        "technician",
+        "other"
+      ]
+    },
+    "tables": {
+      "profiles": {
+        "description": "One row per authenticated user; extends auth.users.",
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "fk": "auth.users.id",
+            "on_delete": "cascade"
+          },
+          "role": {
+            "type": "user_role",
+            "default": "customer",
+            "not_null": true
+          },
+          "full_name": {
+            "type": "text",
+            "not_null": true
+          },
+          "email": {
+            "type": "text",
+            "unique": true
+          },
+          "phone": {
+            "type": "text",
+            "unique": true
+          },
+          "avatar_url": {
+            "type": "text"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "address": {
+            "type": "text"
+          },
+          "county": {
+            "type": "text"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "role",
+          "email",
+          "phone"
+        ],
+        "trigger": "on auth.users insert -> create profile row (via trigger handle_new_user)"
+      },
+      "customers": {
+        "description": "Extra customer info linked to profiles; receptionist may create without auth account (walk-in).",
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "profile_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "nullable": true,
+            "unique": true
+          },
+          "company_name": {
+            "type": "text"
+          },
+          "kra_pin": {
+            "type": "text"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "vessels": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "name": {
+            "type": "text",
+            "not_null": true
+          },
+          "registration_no": {
+            "type": "text",
+            "unique": true
+          },
+          "type": {
+            "type": "vessel_type"
+          },
+          "length_m": {
+            "type": "numeric(6,2)"
+          },
+          "engine_details": {
+            "type": "text"
+          },
+          "year_built": {
+            "type": "int"
+          },
+          "photo_url": {
+            "type": "text"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "customer_id",
+          "registration_no"
+        ]
+      },
+      "service_requests": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true,
+            "generated": "LMEW-SR-<year>-<seq>"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "vessel_id": {
+            "type": "uuid",
+            "fk": "vessels.id"
+          },
+          "category": {
+            "type": "service_category",
+            "not_null": true
+          },
+          "title": {
+            "type": "text",
+            "not_null": true
+          },
+          "description": {
+            "type": "text",
+            "not_null": true
+          },
+          "priority": {
+            "type": "priority",
+            "default": "medium"
+          },
+          "status": {
+            "type": "service_status",
+            "default": "request_received"
+          },
+          "preferred_date": {
+            "type": "date"
+          },
+          "location_text": {
+            "type": "text"
+          },
+          "location_lat": {
+            "type": "numeric(9,6)"
+          },
+          "location_lng": {
+            "type": "numeric(9,6)"
+          },
+          "assigned_service_manager": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "customer_id",
+          "status",
+          "created_at",
+          "category"
+        ]
+      },
+      "service_request_status_history": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "on_delete": "cascade"
+          },
+          "status": {
+            "type": "service_status",
+            "not_null": true
+          },
+          "note": {
+            "type": "text"
+          },
+          "changed_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id"
+        ]
+      },
+      "service_request_attachments": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "on_delete": "cascade"
+          },
+          "storage_path": {
+            "type": "text",
+            "not_null": true
+          },
+          "file_name": {
+            "type": "text"
+          },
+          "mime_type": {
+            "type": "text"
+          },
+          "uploaded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "work_orders": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "not_null": true
+          },
+          "assigned_to": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "not_null": true
+          },
+          "supervisor_id": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "status": {
+            "type": "work_order_status",
+            "default": "assigned"
+          },
+          "scheduled_start": {
+            "type": "timestamptz"
+          },
+          "scheduled_end": {
+            "type": "timestamptz"
+          },
+          "actual_start": {
+            "type": "timestamptz"
+          },
+          "actual_end": {
+            "type": "timestamptz"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "assigned_to",
+          "status"
+        ]
+      },
+      "work_order_media": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "work_order_id": {
+            "type": "uuid",
+            "fk": "work_orders.id",
+            "on_delete": "cascade"
+          },
+          "storage_path": {
+            "type": "text"
+          },
+          "kind": {
+            "type": "text",
+            "enum": [
+              "before",
+              "after",
+              "progress",
+              "document"
+            ]
+          },
+          "uploaded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "quotations": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "not_null": true
+          },
+          "status": {
+            "type": "quotation_status",
+            "default": "draft"
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "subtotal": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "tax_rate": {
+            "type": "numeric(5,2)",
+            "default": 16
+          },
+          "tax_amount": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "discount": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "total": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "valid_until": {
+            "type": "date"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "status"
+        ]
+      },
+      "quotation_items": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "quotation_id": {
+            "type": "uuid",
+            "fk": "quotations.id",
+            "on_delete": "cascade"
+          },
+          "inventory_item_id": {
+            "type": "uuid",
+            "fk": "inventory_items.id",
+            "nullable": true
+          },
+          "description": {
+            "type": "text",
+            "not_null": true
+          },
+          "quantity": {
+            "type": "numeric(10,2)",
+            "not_null": true
+          },
+          "unit_price": {
+            "type": "numeric(12,2)",
+            "not_null": true
+          },
+          "line_total": {
+            "type": "numeric(12,2)",
+            "generated": "quantity * unit_price"
+          }
+        }
+      },
+      "invoices": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "quotation_id": {
+            "type": "uuid",
+            "fk": "quotations.id"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "status": {
+            "type": "invoice_status",
+            "default": "draft"
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "subtotal": {
+            "type": "numeric(12,2)"
+          },
+          "tax_amount": {
+            "type": "numeric(12,2)"
+          },
+          "total": {
+            "type": "numeric(12,2)"
+          },
+          "amount_paid": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "balance": {
+            "type": "numeric(12,2)",
+            "generated": "total - amount_paid"
+          },
+          "issued_at": {
+            "type": "timestamptz"
+          },
+          "due_at": {
+            "type": "timestamptz"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "customer_id",
+          "status",
+          "due_at"
+        ]
+      },
+      "payments": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "invoice_id": {
+            "type": "uuid",
+            "fk": "invoices.id",
+            "not_null": true
+          },
+          "amount": {
+            "type": "numeric(12,2)",
+            "not_null": true
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "method": {
+            "type": "payment_method",
+            "not_null": true
+          },
+          "status": {
+            "type": "payment_status",
+            "default": "pending"
+          },
+          "reference": {
+            "type": "text"
+          },
+          "mpesa_receipt": {
+            "type": "text"
+          },
+          "paid_at": {
+            "type": "timestamptz"
+          },
+          "recorded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "raw_payload": {
+            "type": "jsonb"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "invoice_id",
+          "status",
+          "mpesa_receipt"
+        ]
+      },
+      "suppliers": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "name": {
+            "type": "text",
+            "not_null": true
+          },
+          "contact_person": {
+            "type": "text"
+          },
+          "phone": {
+            "type": "text"
+          },
+          "email": {
+            "type": "text"
+          },
+          "address": {
+            "type": "text"
+          },
+          "category": {
+            "type": "text"
+          },
+          "payment_terms": {
+            "type": "text"
+          },
+          "rating": {
+            "type": "numeric(3,2)"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "profile_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "inventory_categories": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "name": {
+            "type": "text",
+            "unique": true,
+            "not_null": true
+          },
+          "description": {
+            "type": "text"
+          }
+        }
+      },
+      "inventory_items": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "sku": {
+            "type": "text",
+            "unique": true,
+            "not_null": true
+          },
+          "name": {
+            "type": "text",
+            "not_null": true
+          },
+          "category_id": {
+            "type": "uuid",
+            "fk": "inventory_categories.id"
+          },
+          "description": {
+            "type": "text"
+          },
+          "unit": {
+            "type": "text",
+            "default": "pcs"
+          },
+          "unit_cost": {
+            "type": "numeric(12,2)"
+          },
+          "unit_price": {
+            "type": "numeric(12,2)"
+          },
+          "quantity_on_hand": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "reorder_level": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "location": {
+            "type": "text"
+          },
+          "image_url": {
+            "type": "text"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "sku",
+          "category_id",
+          "quantity_on_hand"
+        ]
+      },
+      "stock_movements": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "inventory_item_id": {
+            "type": "uuid",
+            "fk": "inventory_items.id",
+            "not_null": true
+          },
+          "type": {
+            "type": "stock_movement_type",
+            "not_null": true
+          },
+          "quantity": {
+            "type": "numeric(12,2)",
+            "not_null": true
+          },
+          "reference": {
+            "type": "text"
+          },
+          "reason": {
+            "type": "text"
+          },
+          "related_work_order_id": {
+            "type": "uuid",
+            "fk": "work_orders.id",
+            "nullable": true
+          },
+          "related_po_id": {
+            "type": "uuid",
+            "fk": "purchase_orders.id",
+            "nullable": true
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "inventory_item_id",
+          "created_at"
+        ]
+      },
+      "purchase_orders": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "code": {
+            "type": "text",
+            "unique": true
+          },
+          "supplier_id": {
+            "type": "uuid",
+            "fk": "suppliers.id",
+            "not_null": true
+          },
+          "status": {
+            "type": "purchase_order_status",
+            "default": "draft"
+          },
+          "currency": {
+            "type": "text",
+            "default": "KES"
+          },
+          "total": {
+            "type": "numeric(12,2)",
+            "default": 0
+          },
+          "expected_date": {
+            "type": "date"
+          },
+          "notes": {
+            "type": "text"
+          },
+          "created_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "approved_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "purchase_order_items": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "purchase_order_id": {
+            "type": "uuid",
+            "fk": "purchase_orders.id",
+            "on_delete": "cascade"
+          },
+          "inventory_item_id": {
+            "type": "uuid",
+            "fk": "inventory_items.id"
+          },
+          "description": {
+            "type": "text"
+          },
+          "quantity": {
+            "type": "numeric(12,2)"
+          },
+          "unit_cost": {
+            "type": "numeric(12,2)"
+          },
+          "line_total": {
+            "type": "numeric(12,2)",
+            "generated": "quantity * unit_cost"
+          }
+        }
+      },
+      "feedback": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id"
+          },
+          "customer_id": {
+            "type": "uuid",
+            "fk": "customers.id",
+            "not_null": true
+          },
+          "rating": {
+            "type": "int",
+            "check": "rating BETWEEN 1 AND 5"
+          },
+          "category": {
+            "type": "feedback_category"
+          },
+          "comment": {
+            "type": "text"
+          },
+          "response": {
+            "type": "text"
+          },
+          "responded_by": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "rating"
+        ]
+      },
+      "notifications": {
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "user_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "not_null": true
+          },
+          "type": {
+            "type": "notification_type",
+            "not_null": true
+          },
+          "title": {
+            "type": "text",
+            "not_null": true
+          },
+          "body": {
+            "type": "text"
+          },
+          "data": {
+            "type": "jsonb"
+          },
+          "read_at": {
+            "type": "timestamptz"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "user_id",
+          "read_at",
+          "created_at"
+        ]
+      },
+      "messages": {
+        "description": "Threaded messages between customer and assigned staff on a service request.",
+        "columns": {
+          "id": {
+            "type": "uuid",
+            "pk": true,
+            "default": "gen_random_uuid()"
+          },
+          "service_request_id": {
+            "type": "uuid",
+            "fk": "service_requests.id",
+            "on_delete": "cascade"
+          },
+          "sender_id": {
+            "type": "uuid",
+            "fk": "profiles.id",
+            "not_null": true
+          },
+          "body": {
+            "type": "text"
+          },
+          "attachment_url": {
+            "type": "text"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        },
+        "indexes": [
+          "service_request_id",
+          "created_at"
+        ]
+      },
+      "audit_logs": {
+        "columns": {
+          "id": {
+            "type": "bigserial",
+            "pk": true
+          },
+          "actor_id": {
+            "type": "uuid",
+            "fk": "profiles.id"
+          },
+          "action": {
+            "type": "text"
+          },
+          "entity": {
+            "type": "text"
+          },
+          "entity_id": {
+            "type": "uuid"
+          },
+          "before": {
+            "type": "jsonb"
+          },
+          "after": {
+            "type": "jsonb"
+          },
+          "created_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      },
+      "company_info": {
+        "description": "Single-row table for About Us / Contact Us content.",
+        "columns": {
+          "id": {
+            "type": "int",
+            "pk": true,
+            "default": 1
+          },
+          "name": {
+            "type": "text",
+            "default": "Lakeview Marine Engineering Works"
+          },
+          "about": {
+            "type": "text"
+          },
+          "mission": {
+            "type": "text"
+          },
+          "vision": {
+            "type": "text"
+          },
+          "phone": {
+            "type": "text"
+          },
+          "email": {
+            "type": "text"
+          },
+          "address": {
+            "type": "text"
+          },
+          "latitude": {
+            "type": "numeric(9,6)"
+          },
+          "longitude": {
+            "type": "numeric(9,6)"
+          },
+          "updated_at": {
+            "type": "timestamptz",
+            "default": "now()"
+          }
+        }
+      }
+    },
+    "storage_buckets": {
+      "avatars": {
+        "public": true,
+        "path_pattern": "{user_id}/avatar.{ext}"
+      },
+      "vessel-photos": {
+        "public": false,
+        "path_pattern": "{customer_id}/{vessel_id}/{filename}"
+      },
+      "service-attachments": {
+        "public": false,
+        "path_pattern": "{service_request_id}/{filename}"
+      },
+      "work-order-media": {
+        "public": false,
+        "path_pattern": "{work_order_id}/{filename}"
+      },
+      "quotation-pdfs": {
+        "public": false,
+        "path_pattern": "{quotation_id}/{filename}"
+      },
+      "invoice-pdfs": {
+        "public": false,
+        "path_pattern": "{invoice_id}/{filename}"
+      },
+      "reports": {
+        "public": false,
+        "path_pattern": "{user_id}/{report_id}.{ext}"
+      }
+    },
+    "functions_and_triggers": [
+      {
+        "name": "handle_new_user",
+        "type": "trigger",
+        "on": "auth.users insert",
+        "action": "create profiles row"
+      },
+      {
+        "name": "set_updated_at",
+        "type": "trigger",
+        "on": "any table with updated_at",
+        "action": "set updated_at = now()"
+      },
+      {
+        "name": "log_status_change",
+        "type": "trigger",
+        "on": "service_requests update of status",
+        "action": "insert into service_request_status_history"
+      },
+      {
+        "name": "generate_service_request_code",
+        "type": "trigger",
+        "on": "service_requests insert",
+        "action": "assign code like LMEW-SR-2025-0001"
+      },
+      {
+        "name": "generate_invoice_code",
+        "type": "trigger",
+        "on": "invoices insert",
+        "action": "assign code like LMEW-INV-2025-0001"
+      },
+      {
+        "name": "decrement_stock_on_work_order_part",
+        "type": "trigger",
+        "on": "work_order_parts insert",
+        "action": "insert stock_movement out + update inventory quantity"
+      },
+      {
+        "name": "notify_low_stock",
+        "type": "trigger",
+        "on": "inventory_items update",
+        "action": "if quantity_on_hand <= reorder_level -> insert notifications for store_manager + administrator"
+      },
+      {
+        "name": "recalc_quotation_totals",
+        "type": "trigger",
+        "on": "quotation_items insert/update/delete",
+        "action": "recalculate quotations.subtotal, tax, total"
+      },
+      {
+        "name": "recalc_invoice_balance",
+        "type": "trigger",
+        "on": "payments insert/update",
+        "action": "recalculate invoices.amount_paid and status"
+      }
+    ]
+  },
+  "rls_policies": {
+    "principles": [
+      "Enable RLS on every table.",
+      "Default deny: no policy = no access.",
+      "Use auth.uid() and (select role from profiles where id = auth.uid()) as the primary predicates.",
+      "Never trust client-supplied role; always look it up server-side."
+    ],
+    "policies": [
+      {
+        "table": "profiles",
+        "name": "profiles_select_self_or_admin",
+        "operation": "SELECT",
+        "using": "id = auth.uid() OR public.current_role() IN ('administrator','service_manager','receptionist','supervisor')"
+      },
+      {
+        "table": "profiles",
+        "name": "profiles_update_self",
+        "operation": "UPDATE",
+        "using": "id = auth.uid()"
+      },
+      {
+        "table": "customers",
+        "name": "customers_select_own_or_staff",
+        "operation": "SELECT",
+        "using": "profile_id = auth.uid() OR public.current_role() IN ('administrator','service_manager','finance_manager','receptionist')"
+      },
+      {
+        "table": "customers",
+        "name": "customers_insert_self_or_staff",
+        "operation": "INSERT",
+        "with_check": "profile_id = auth.uid() OR public.current_role() IN ('administrator','receptionist')"
+      },
+      {
+        "table": "vessels",
+        "name": "vessels_customer_own",
+        "operation": "ALL",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()) OR public.current_role() IN ('administrator','service_manager','technician','supervisor')"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_customer_own",
+        "operation": "SELECT",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_customer_create",
+        "operation": "INSERT",
+        "with_check": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_staff_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','service_manager','supervisor','finance_manager')"
+      },
+      {
+        "table": "service_requests",
+        "name": "sr_technician_assigned",
+        "operation": "SELECT",
+        "using": "id IN (SELECT service_request_id FROM work_orders WHERE assigned_to = auth.uid())"
+      },
+      {
+        "table": "work_orders",
+        "name": "wo_technician_own",
+        "operation": "SELECT",
+        "using": "assigned_to = auth.uid() OR supervisor_id = auth.uid()"
+      },
+      {
+        "table": "work_orders",
+        "name": "wo_technician_update_status",
+        "operation": "UPDATE",
+        "using": "assigned_to = auth.uid()",
+        "with_check": "assigned_to = auth.uid()"
+      },
+      {
+        "table": "work_orders",
+        "name": "wo_service_manager_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','service_manager','supervisor')"
+      },
+      {
+        "table": "quotations",
+        "name": "q_customer_own",
+        "operation": "SELECT",
+        "using": "service_request_id IN (SELECT id FROM service_requests WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()))"
+      },
+      {
+        "table": "quotations",
+        "name": "q_staff_manage",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','service_manager','finance_manager')"
+      },
+      {
+        "table": "invoices",
+        "name": "inv_customer_own",
+        "operation": "SELECT",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "invoices",
+        "name": "inv_finance_manage",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','finance_manager')"
+      },
+      {
+        "table": "payments",
+        "name": "pay_customer_own",
+        "operation": "SELECT",
+        "using": "invoice_id IN (SELECT id FROM invoices WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()))"
+      },
+      {
+        "table": "payments",
+        "name": "pay_customer_create",
+        "operation": "INSERT",
+        "with_check": "invoice_id IN (SELECT id FROM invoices WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid()))"
+      },
+      {
+        "table": "payments",
+        "name": "pay_finance_manage",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','finance_manager')"
+      },
+      {
+        "table": "inventory_items",
+        "name": "inv_items_staff_read",
+        "operation": "SELECT",
+        "using": "public.current_role() IN ('administrator','store_manager','procurement_officer','service_manager','technician','finance_manager','receptionist')"
+      },
+      {
+        "table": "inventory_items",
+        "name": "inv_items_store_write",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','store_manager')"
+      },
+      {
+        "table": "stock_movements",
+        "name": "sm_store_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','store_manager','procurement_officer')"
+      },
+      {
+        "table": "suppliers",
+        "name": "sup_procurement_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','procurement_officer','store_manager')"
+      },
+      {
+        "table": "suppliers",
+        "name": "sup_supplier_self",
+        "operation": "SELECT",
+        "using": "profile_id = auth.uid()"
+      },
+      {
+        "table": "purchase_orders",
+        "name": "po_procurement_all",
+        "operation": "ALL",
+        "using": "public.current_role() IN ('administrator','procurement_officer','store_manager')"
+      },
+      {
+        "table": "purchase_orders",
+        "name": "po_supplier_own",
+        "operation": "SELECT",
+        "using": "supplier_id IN (SELECT id FROM suppliers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "feedback",
+        "name": "fb_customer_own",
+        "operation": "ALL",
+        "using": "customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())"
+      },
+      {
+        "table": "feedback",
+        "name": "fb_staff_read",
+        "operation": "SELECT",
+        "using": "public.current_role() IN ('administrator','service_manager','supervisor')"
+      },
+      {
+        "table": "notifications",
+        "name": "notif_own",
+        "operation": "ALL",
+        "using": "user_id = auth.uid()"
+      },
+      {
+        "table": "messages",
+        "name": "msg_participants",
+        "operation": "SELECT",
+        "using": "service_request_id IN (SELECT id FROM service_requests WHERE customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())) OR public.current_role() IN ('administrator','service_manager','supervisor') OR service_request_id IN (SELECT service_request_id FROM work_orders WHERE assigned_to = auth.uid())"
+      },
+      {
+        "table": "messages",
+        "name": "msg_participants_insert",
+        "operation": "INSERT",
+        "with_check": "sender_id = auth.uid()"
+      },
+      {
+        "table": "company_info",
+        "name": "company_read_all",
+        "operation": "SELECT",
+        "using": "true"
+      },
+      {
+        "table": "company_info",
+        "name": "company_write_admin",
+        "operation": "ALL",
+        "using": "public.current_role() = 'administrator'"
+      },
+      {
+        "table": "audit_logs",
+        "name": "audit_admin_read",
+        "operation": "SELECT",
+        "using": "public.current_role() = 'administrator'"
+      }
+    ],
+    "helper_function": {
+      "name": "public.current_role",
+      "returns": "user_role",
+      "body": "SELECT role FROM public.profiles WHERE id = auth.uid()",
+      "security": "SECURITY DEFINER STABLE"
+    }
+  },
+  "api_spec": {
+    "note": "Supabase is the API. Use the JS client. Below are the primary client calls per feature. Edge Functions are HTTP endpoints.",
+    "client_usage": {
+      "auth": [
+        "supabase.auth.signUp({ email, password })",
+        "supabase.auth.signInWithPassword({ email, password })",
+        "supabase.auth.signInWithOtp({ phone })",
+        "supabase.auth.signOut()",
+        "supabase.auth.getSession()"
+      ],
+      "database": [
+        "supabase.from('service_requests').select('*, vessel:vessels(*), customer:customers(*)').eq('customer_id', id)",
+        "supabase.from('service_requests').insert(payload).select().single()",
+        "supabase.from('work_orders').update({ status }).eq('id', id)",
+        "supabase.from('inventory_items').select('*').lte('quantity_on_hand', 'reorder_level')"
+      ],
+      "storage": [
+        "supabase.storage.from('work-order-media').upload(path, file)",
+        "supabase.storage.from('invoice-pdfs').createSignedUrl(path, 3600)"
+      ],
+      "realtime": [
+        "supabase.channel('sr:' + id).on('postgres_changes', { event: '*', schema: 'public', table: 'service_requests', filter: 'id=eq.' + id }, cb).subscribe()",
+        "supabase.channel('user:' + uid).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + uid }, cb).subscribe()"
+      ]
+    },
+    "edge_functions": [
+      {
+        "name": "create-mpesa-payment",
+        "method": "POST",
+        "auth": "user JWT",
+        "body": {
+          "invoice_id": "uuid",
+          "phone": "string",
+          "amount": "number"
+        },
+        "returns": {
+          "checkout_request_id": "string",
+          "status": "pending"
+        },
+        "description": "Initiates M-Pesa STK Push via Safaricom Daraja."
+      },
+      {
+        "name": "mpesa-callback",
+        "method": "POST",
+        "auth": "none (Daraja IP allowlist)",
+        "body": "Daraja callback payload",
+        "returns": {
+          "ResultCode": 0
+        },
+        "description": "Handles Daraja callback, updates payments + invoices."
+      },
+      {
+        "name": "generate-pdf",
+        "method": "POST",
+        "auth": "user JWT",
+        "body": {
+          "type": "quotation|invoice|report",
+          "id": "uuid"
+        },
+        "returns": {
+          "signed_url": "string"
+        },
+        "description": "Renders PDF into storage bucket and returns signed URL."
+      },
+      {
+        "name": "send-notification",
+        "method": "POST",
+        "auth": "service role only (called by triggers)",
+        "body": {
+          "user_id": "uuid",
+          "title": "string",
+          "body": "string",
+          "data": "object"
+        },
+        "returns": {
+          "ok": true
+        },
+        "description": "Sends push via Expo Push API and inserts notifications row."
+      },
+      {
+        "name": "low-stock-cron",
+        "method": "SCHEDULED (pg_cron or Supabase cron)",
+        "schedule": "0 6 * * *",
+        "description": "Daily check for items below reorder level and notify store manager."
+      },
+      {
+        "name": "overdue-invoice-cron",
+        "method": "SCHEDULED",
+        "schedule": "0 7 * * *",
+        "description": "Mark invoices overdue and notify finance + customer."
+      }
+    ]
+  },
+  "mobile_app_spec": {
+    "platform": "React Native + Expo",
+    "navigation": "expo-router with role-based route groups",
+    "route_groups": {
+      "(auth)": [
+        "login",
+        "register",
+        "forgot-password",
+        "otp-verify"
+      ],
+      "(customer)": [
+        "home",
+        "new-request",
+        "my-requests",
+        "request/[id]",
+        "vessels",
+        "vessel/[id]",
+        "quotations",
+        "invoices",
+        "invoice/[id]",
+        "pay/[invoiceId]",
+        "notifications",
+        "profile",
+        "feedback/[serviceRequestId]",
+        "about",
+        "help",
+        "contact",
+        "search"
+      ],
+      "(technician)": [
+        "home",
+        "my-jobs",
+        "job/[id]",
+        "job/[id]/media",
+        "job/[id]/parts",
+        "notifications",
+        "profile"
+      ],
+      "(supervisor)": [
+        "home",
+        "team-jobs",
+        "team-jobs/[id]",
+        "technicians",
+        "reports",
+        "notifications",
+        "profile"
+      ]
+    },
+    "screens": [
+      {
+        "id": "auth.login",
+        "role": "all",
+        "fields": [
+          "email",
+          "password"
+        ],
+        "actions": [
+          "signIn",
+          "goToRegister",
+          "goToForgotPassword"
+        ],
+        "notes": "Show role-based redirect after login using profiles.role"
+      },
+      {
+        "id": "auth.register",
+        "role": "customer",
+        "fields": [
+          "full_name",
+          "email",
+          "phone",
+          "password",
+          "confirm_password"
+        ],
+        "validations": [
+          "email format",
+          "phone +254 format",
+          "password min 8 with number+letter"
+        ],
+        "actions": [
+          "signUp",
+          "upload avatar optional"
+        ]
+      },
+      {
+        "id": "customer.home",
+        "role": "customer",
+        "widgets": [
+          "active request card with status stepper",
+          "quick actions: New Request / Track / Pay",
+          "recent notifications",
+          "recommended services"
+        ],
+        "realtime": "subscribe to notifications:user_id"
+      },
+      {
+        "id": "customer.new-request",
+        "role": "customer",
+        "fields": [
+          "vessel (select or add new)",
+          "category",
+          "title",
+          "description",
+          "priority",
+          "preferred_date",
+          "location_text",
+          "photos (up to 5)"
+        ],
+        "actions": [
+          "submit"
+        ],
+        "on_submit": [
+          "insert service_requests",
+          "upload photos to service-attachments",
+          "navigate to request detail"
+        ]
+      },
+      {
+        "id": "customer.request-detail",
+        "role": "customer",
+        "widgets": [
+          "status stepper",
+          "quotation card",
+          "invoice card",
+          "messages thread",
+          "attachments gallery",
+          "leave feedback (if completed)"
+        ],
+        "realtime": "subscribe to service_requests:id and messages:service_request_id"
+      },
+      {
+        "id": "customer.pay",
+        "role": "customer",
+        "fields": [
+          "phone (M-Pesa)",
+          "amount (readonly)"
+        ],
+        "actions": [
+          "pay via M-Pesa",
+          "mark as paid offline (uploads proof)"
+        ],
+        "on_submit": [
+          "call edge function create-mpesa-payment"
+        ]
+      },
+      {
+        "id": "technician.my-jobs",
+        "role": "technician",
+        "widgets": [
+          "filter tabs: Assigned / In Progress / Completed",
+          "job card: code, customer, vessel, priority, scheduled time"
+        ],
+        "realtime": "subscribe to work_orders where assigned_to = me"
+      },
+      {
+        "id": "technician.job-detail",
+        "role": "technician",
+        "widgets": [
+          "job info",
+          "customer contact",
+          "vessel details",
+          "status update buttons",
+          "upload before/after photos",
+          "request parts form",
+          "notes"
+        ],
+        "actions": [
+          "update status",
+          "upload media",
+          "request parts"
+        ]
+      },
+      {
+        "id": "supervisor.team-jobs",
+        "role": "supervisor",
+        "widgets": [
+          "technician list",
+          "jobs per technician",
+          "performance chart"
+        ]
+      },
+      {
+        "id": "shared.notifications",
+        "role": "all",
+        "widgets": [
+          "list grouped by date",
+          "mark as read",
+          "deep-link to related entity"
+        ]
+      },
+      {
+        "id": "shared.profile",
+        "role": "all",
+        "widgets": [
+          "avatar upload",
+          "edit name/phone/address",
+          "change password",
+          "logout",
+          "language toggle (EN/SW)"
+        ]
+      },
+      {
+        "id": "shared.about",
+        "role": "all",
+        "content_source": "company_info table"
+      },
+      {
+        "id": "shared.help",
+        "role": "all",
+        "content": "FAQ accordion + contact support button"
+      },
+      {
+        "id": "shared.contact",
+        "role": "all",
+        "content_source": "company_info table",
+        "actions": [
+          "call",
+          "email",
+          "open maps",
+          "whatsapp"
+        ]
+      },
+      {
+        "id": "shared.search",
+        "role": "customer",
+        "searches": [
+          "services by category",
+          "own service requests by code/title"
+        ]
+      }
+    ],
+    "status_stepper_labels": {
+      "request_received": "Request Received",
+      "inspection_in_progress": "Inspection in Progress",
+      "quotation_pending": "Preparing Quotation",
+      "quotation_sent": "Quotation Sent",
+      "awaiting_approval": "Awaiting Your Approval",
+      "awaiting_spare_parts": "Awaiting Spare Parts",
+      "under_repair": "Under Repair",
+      "testing": "Testing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "push_notifications": {
+      "provider": "Expo Push + Supabase Edge Function send-notification",
+      "triggers": [
+        "service request status change -> notify customer",
+        "work order assigned -> notify technician",
+        "quotation sent -> notify customer",
+        "invoice issued -> notify customer",
+        "payment confirmed -> notify customer + finance",
+        "low stock -> notify store manager"
+      ]
+    }
+  },
+  "admin_web_spec": {
+    "platform": "React + Vite + TypeScript",
+    "audience": [
+      "administrator",
+      "service_manager",
+      "finance_manager"
+    ],
+    "layout": "Sidebar + topbar + content; collapsible sidebar; dark/light mode",
+    "routes": [
+      {
+        "path": "/login",
+        "component": "LoginPage"
+      },
+      {
+        "path": "/dashboard",
+        "component": "DashboardPage",
+        "widgets": [
+          "KPI cards (open requests, revenue MTD, jobs today, low stock count)",
+          "recent activity feed",
+          "charts: requests by status, revenue trend"
+        ]
+      },
+      {
+        "path": "/users",
+        "component": "UsersPage",
+        "capabilities": [
+          "list profiles",
+          "filter by role",
+          "approve/disable account",
+          "change role",
+          "reset password"
+        ]
+      },
+      {
+        "path": "/customers",
+        "component": "CustomersPage"
+      },
+      {
+        "path": "/vessels",
+        "component": "VesselsPage"
+      },
+      {
+        "path": "/service-requests",
+        "component": "ServiceRequestsPage",
+        "capabilities": [
+          "list with filters (status, category, priority, date)",
+          "assign service manager",
+          "change status",
+          "view detail drawer"
+        ]
+      },
+      {
+        "path": "/service-requests/:id",
+        "component": "ServiceRequestDetailPage",
+        "widgets": [
+          "full timeline",
+          "attachments",
+          "quotation editor",
+          "invoice panel",
+          "messages",
+          "assign technicians"
+        ]
+      },
+      {
+        "path": "/work-orders",
+        "component": "WorkOrdersPage"
+      },
+      {
+        "path": "/work-orders/:id",
+        "component": "WorkOrderDetailPage"
+      },
+      {
+        "path": "/quotations",
+        "component": "QuotationsPage"
+      },
+      {
+        "path": "/invoices",
+        "component": "InvoicesPage"
+      },
+      {
+        "path": "/payments",
+        "component": "PaymentsPage",
+        "capabilities": [
+          "verify payment",
+          "record manual payment",
+          "refund"
+        ]
+      },
+      {
+        "path": "/reports",
+        "component": "ReportsPage",
+        "widgets": [
+          "service report",
+          "financial report",
+          "technician performance",
+          "inventory report",
+          "customer feedback report",
+          "export CSV/PDF"
+        ]
+      },
+      {
+        "path": "/feedback",
+        "component": "FeedbackPage",
+        "capabilities": [
+          "view ratings",
+          "respond to feedback"
+        ]
+      },
+      {
+        "path": "/notifications",
+        "component": "NotificationsPage"
+      },
+      {
+        "path": "/company",
+        "component": "CompanyInfoPage",
+        "capabilities": [
+          "edit About Us / Contact Us"
+        ]
+      },
+      {
+        "path": "/audit",
+        "component": "AuditLogPage",
+        "role": "administrator"
+      },
+      {
+        "path": "/settings",
+        "component": "SettingsPage"
+      }
+    ],
+    "realtime_subscriptions": [
+      "service_requests (all inserts/updates)",
+      "payments inserts",
+      "work_orders updates",
+      "inventory_items low-stock updates"
+    ]
+  },
+  "staff_portal_spec": {
+    "platform": "Vue 3 + Vite + TypeScript",
+    "audience": [
+      "store_manager",
+      "procurement_officer",
+      "receptionist",
+      "supplier"
+    ],
+    "layout": "PrimeVue Menubar + sidebar + content",
+    "routes": [
+      {
+        "path": "/login",
+        "component": "LoginView"
+      },
+      {
+        "path": "/inventory",
+        "component": "InventoryView",
+        "roles": [
+          "store_manager",
+          "procurement_officer"
+        ]
+      },
+      {
+        "path": "/inventory/:id",
+        "component": "InventoryItemView"
+      },
+      {
+        "path": "/stock-movements",
+        "component": "StockMovementsView",
+        "roles": [
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/suppliers",
+        "component": "SuppliersView",
+        "roles": [
+          "procurement_officer",
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/purchase-orders",
+        "component": "PurchaseOrdersView",
+        "roles": [
+          "procurement_officer",
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/purchase-orders/:id",
+        "component": "PurchaseOrderDetailView"
+      },
+      {
+        "path": "/my-orders",
+        "component": "SupplierOrdersView",
+        "roles": [
+          "supplier"
+        ]
+      },
+      {
+        "path": "/walk-in",
+        "component": "WalkInCustomerView",
+        "roles": [
+          "receptionist"
+        ]
+      },
+      {
+        "path": "/appointments",
+        "component": "AppointmentsView",
+        "roles": [
+          "receptionist"
+        ]
+      },
+      {
+        "path": "/service-requests/new",
+        "component": "OnBehalfRequestView",
+        "roles": [
+          "receptionist"
+        ]
+      },
+      {
+        "path": "/reports/inventory",
+        "component": "InventoryReportsView",
+        "roles": [
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/profile",
+        "component": "ProfileView"
+      }
+    ]
+  },
+  "design_system": {
+    "brand": {
+      "name": "Lakeview Marine Engineering Works",
+      "tagline": "Reliable Marine Engineering on Lake Victoria"
+    },
+    "colors": {
+      "primary": "#0B4F6C",
+      "primary_dark": "#083A50",
+      "accent": "#01BAEF",
+      "success": "#22C55E",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "neutral_900": "#0F172A",
+      "neutral_700": "#334155",
+      "neutral_500": "#64748B",
+      "neutral_200": "#E2E8F0",
+      "neutral_50": "#F8FAFC",
+      "background_light": "#FFFFFF",
+      "background_dark": "#0F172A"
+    },
+    "typography": {
+      "font_family": "Inter",
+      "sizes": {
+        "xs": 12,
+        "sm": 14,
+        "base": 16,
+        "lg": 18,
+        "xl": 20,
+        "2xl": 24,
+        "3xl": 30
+      },
+      "weights": {
+        "regular": 400,
+        "medium": 500,
+        "semibold": 600,
+        "bold": 700
+      }
+    },
+    "spacing": {
+      "0": 0,
+      "1": 4,
+      "2": 8,
+      "3": 12,
+      "4": 16,
+      "5": 20,
+      "6": 24,
+      "8": 32,
+      "10": 40,
+      "12": 48
+    },
+    "radii": {
+      "sm": 4,
+      "md": 8,
+      "lg": 12,
+      "xl": 16,
+      "full": 9999
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(15,23,42,0.06)",
+      "md": "0 4px 12px rgba(15,23,42,0.10)",
+      "lg": "0 12px 24px rgba(15,23,42,0.12)"
+    },
+    "status_colors": {
+      "request_received": "#64748B",
+      "inspection_in_progress": "#01BAEF",
+      "quotation_pending": "#F59E0B",
+      "quotation_sent": "#0B4F6C",
+      "awaiting_approval": "#F59E0B",
+      "awaiting_spare_parts": "#F97316",
+      "under_repair": "#8B5CF6",
+      "testing": "#06B6D4",
+      "completed": "#22C55E",
+      "cancelled": "#EF4444"
+    },
+    "iconography": "Lucide (web) + @expo/vector-icons (mobile)"
+  },
+  "feature_modules_mapping": {
+    "note": "Maps the proposal's 16 modules to implementation.",
+    "modules": [
+      {
+        "id": "1.5.1",
+        "name": "Database module",
+        "implementation": "Supabase Postgres schema + RLS + Storage",
+        "clients": [
+          "all"
+        ]
+      },
+      {
+        "id": "1.5.2",
+        "name": "Administrator module",
+        "implementation": "Admin web (React) /users, /settings, /audit, /company",
+        "clients": [
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.3",
+        "name": "Customer module",
+        "implementation": "Mobile (customer) route group",
+        "clients": [
+          "mobile"
+        ]
+      },
+      {
+        "id": "1.5.4",
+        "name": "Stock Manager module",
+        "implementation": "Staff web (Vue) /inventory, /stock-movements",
+        "clients": [
+          "staff_web"
+        ]
+      },
+      {
+        "id": "1.5.5",
+        "name": "Supplier module",
+        "implementation": "Staff web (Vue) /suppliers, /purchase-orders + supplier login /my-orders",
+        "clients": [
+          "staff_web"
+        ]
+      },
+      {
+        "id": "1.5.6",
+        "name": "Finance Manager module",
+        "implementation": "Admin web (React) /invoices, /payments, /reports (financial)",
+        "clients": [
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.7",
+        "name": "Service Manager module",
+        "implementation": "Admin web (React) /service-requests, /work-orders",
+        "clients": [
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.8",
+        "name": "Technician module",
+        "implementation": "Mobile (technician) route group",
+        "clients": [
+          "mobile"
+        ]
+      },
+      {
+        "id": "1.5.9",
+        "name": "Supervisor module",
+        "implementation": "Mobile (supervisor) + Admin web team view",
+        "clients": [
+          "mobile",
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.10",
+        "name": "Payment module",
+        "implementation": "Mobile pay screen + M-Pesa edge function + Finance verify",
+        "clients": [
+          "mobile",
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.11",
+        "name": "Reports module",
+        "implementation": "Admin web /reports + edge function generate-pdf",
+        "clients": [
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.12",
+        "name": "Feedback module",
+        "implementation": "Mobile feedback screen + Admin web /feedback",
+        "clients": [
+          "mobile",
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.13",
+        "name": "Search module",
+        "implementation": "Mobile search + admin global search (Postgres full-text)",
+        "clients": [
+          "all"
+        ]
+      },
+      {
+        "id": "1.5.14",
+        "name": "About us module",
+        "implementation": "Mobile /about + Admin /company",
+        "clients": [
+          "mobile",
+          "admin_web"
+        ]
+      },
+      {
+        "id": "1.5.15",
+        "name": "Help module",
+        "implementation": "Mobile /help + web help drawer",
+        "clients": [
+          "all"
+        ]
+      },
+      {
+        "id": "1.5.16",
+        "name": "Contact us module",
+        "implementation": "Mobile /contact + Admin /company",
+        "clients": [
+          "mobile",
+          "admin_web"
+        ]
+      }
+    ]
+  },
+  "roadmap": {
+    "methodology": "Waterfall (per proposal)",
+    "phases": [
+      {
+        "phase": "Problem Identification",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Problem statement finalized",
+          "Stakeholder interviews"
+        ]
+      },
+      {
+        "phase": "Feasibility Study",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Schedule, Operational, Technical, Economic feasibility docs"
+        ]
+      },
+      {
+        "phase": "Project Planning",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Gantt chart",
+          "Budget",
+          "Resource list"
+        ]
+      },
+      {
+        "phase": "System Analysis",
+        "duration_weeks": 2,
+        "deliverables": [
+          "User stories",
+          "Use case diagrams",
+          "Data flow diagrams"
+        ]
+      },
+      {
+        "phase": "System Design",
+        "duration_weeks": 2,
+        "deliverables": [
+          "ERD",
+          "Wireframes",
+          "UI mockups",
+          "API contract"
+        ]
+      },
+      {
+        "phase": "System Development",
+        "duration_weeks": 5,
+        "deliverables": [
+          "Mobile app MVP",
+          "Admin web MVP",
+          "Staff web MVP",
+          "Supabase schema + RLS"
+        ]
+      },
+      {
+        "phase": "Integration & System Testing",
+        "duration_weeks": 2,
+        "deliverables": [
+          "End-to-end tests",
+          "UAT report",
+          "Bug fixes"
+        ]
+      },
+      {
+        "phase": "Implementation",
+        "duration_weeks": 1,
+        "deliverables": [
+          "Deployed prod",
+          "User training",
+          "Handover docs"
+        ]
+      },
+      {
+        "phase": "Maintenance",
+        "duration": "ongoing",
+        "deliverables": [
+          "Monitoring",
+          "Backups",
+          "Iteration backlog"
+        ]
+      }
+    ],
+    "milestones": [
+      {
+        "id": "M1",
+        "name": "Supabase schema + RLS live",
+        "week": 6
+      },
+      {
+        "id": "M2",
+        "name": "Customer mobile MVP",
+        "week": 9
+      },
+      {
+        "id": "M3",
+        "name": "Technician mobile MVP",
+        "week": 10
+      },
+      {
+        "id": "M4",
+        "name": "Admin web MVP",
+        "week": 11
+      },
+      {
+        "id": "M5",
+        "name": "Staff (Vue) MVP",
+        "week": 11
+      },
+      {
+        "id": "M6",
+        "name": "M-Pesa payments live",
+        "week": 12
+      },
+      {
+        "id": "M7",
+        "name": "Reports + PDFs",
+        "week": 12
+      },
+      {
+        "id": "M8",
+        "name": "UAT sign-off",
+        "week": 13
+      },
+      {
+        "id": "M9",
+        "name": "Production deployment",
+        "week": 14
+      }
+    ]
+  },
+  "budget_and_resources": {
+    "hardware": [
+      "Laptop running Windows 10 with internet",
+      "Smartphone for testing the mobile application"
+    ],
+    "software": [
+      "Microsoft Word (documentation)",
+      "Microsoft PowerPoint (slides)",
+      "MySQL (legacy reference; replaced by Supabase Postgres)",
+      "Android Studio (mobile dev support)",
+      "Visual Studio Code (coding)",
+      "Zotero (citations)",
+      "XAMPP (local admin web testing)",
+      "Supabase CLI + Docker (local backend)",
+      "EAS CLI (Expo builds)",
+      "Vercel CLI (web deploys)"
+    ],
+    "budget_kes": [
+      {
+        "item": "Printing",
+        "cost": 600.0
+      },
+      {
+        "item": "Internet fee",
+        "cost": 1000.0
+      },
+      {
+        "item": "Binding",
+        "cost": 600.0
+      },
+      {
+        "item": "Hosting Fee",
+        "cost": 1000.0
+      },
+      {
+        "item": "TOTAL",
+        "cost": 3200.0
+      }
+    ],
+    "recurring_costs_estimate_kes_monthly": [
+      {
+        "item": "Supabase Pro (if outgrow free)",
+        "cost": 3000
+      },
+      {
+        "item": "Vercel Pro (2 web apps, optional)",
+        "cost": 2500
+      },
+      {
+        "item": "Expo EAS Production plan",
+        "cost": 1500
+      },
+      {
+        "item": "Domain + SSL",
+        "cost": 200
+      }
+    ]
+  },
+  "testing": {
+    "strategy": "Acceptance testing (per proposal) plus layered automated testing.",
+    "layers": {
+      "unit": {
+        "tools": [
+          "Jest",
+          "Vitest"
+        ],
+        "coverage_target": ">= 70%"
+      },
+      "component": {
+        "tools": [
+          "React Native Testing Library",
+          "React Testing Library",
+          "Vue Test Utils"
+        ]
+      },
+      "integration": {
+        "tools": [
+          "Supabase local + pgTAP for RLS",
+          "Supertest for edge functions"
+        ]
+      },
+      "e2e": {
+        "tools": [
+          "Maestro (mobile)",
+          "Playwright (web)"
+        ]
+      },
+      "security": {
+        "tools": [
+          "Supabase RLS test suite",
+          "OWASP ZAP baseline"
+        ]
+      }
+    },
+    "critical_test_cases": [
+      "Customer cannot read another customer's service requests (RLS).",
+      "Technician can only update work orders assigned to them.",
+      "Store manager sees low-stock notification after stock drops below reorder level.",
+      "Invoice balance updates after M-Pesa payment callback.",
+      "Quotation totals recalculate when line items change.",
+      "Realtime status change appears on customer mobile within 2 seconds.",
+      "Disabled account cannot log in."
+    ],
+    "acceptance_criteria": [
+      "All specific objectives (1.4.2) demonstrably met.",
+      "End-to-end flow: create request -> assign -> quote -> approve -> work -> invoice -> pay -> feedback.",
+      "No P1 bugs open at UAT sign-off.",
+      "Page load < 3s on 3G for mobile.",
+      "All PDFs render correctly with company branding."
+    ]
+  },
+  "deployment": {
+    "mobile": {
+      "tool": "EAS Build + EAS Submit",
+      "channels": [
+        "development",
+        "preview",
+        "production"
+      ],
+      "stores": [
+        "Google Play",
+        "Apple App Store"
+      ],
+      "ota_updates": "expo-updates enabled for JS-only patches"
+    },
+    "admin_web": {
+      "host": "Vercel",
+      "project": "lmew-admin",
+      "framework_preset": "Vite"
+    },
+    "staff_web": {
+      "host": "Vercel",
+      "project": "lmew-staff",
+      "framework_preset": "Vite"
+    },
+    "backend": {
+      "host": "Supabase Cloud",
+      "migrations": "supabase/migrations/*.sql versioned in git",
+      "functions": "supabase functions deploy <name>",
+      "secrets": [
+        "MPESA_CONSUMER_KEY",
+        "MPESA_CONSUMER_SECRET",
+        "MPESA_SHORTCODE",
+        "MPESA_PASSKEY",
+        "MPESA_ENV",
+        "EXPO_ACCESS_TOKEN"
+      ],
+      "backups": "Supabase daily PITR (Pro plan)"
+    },
+    "ci_cd": {
+      "provider": "GitHub Actions",
+      "workflows": [
+        ".github/workflows/mobile.yml -> lint, typecheck, jest, eas build --profile preview on PR, production on tag",
+        ".github/workflows/admin.yml -> lint, typecheck, vitest, playwright, deploy to Vercel",
+        ".github/workflows/staff.yml -> lint, typecheck, vitest, playwright, deploy to Vercel",
+        ".github/workflows/supabase.yml -> supabase db push on main, functions deploy"
+      ]
+    }
+  },
+  "env_variables": {
+    "shared_web_mobile": [
+      "EXPO_PUBLIC_SUPABASE_URL",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "VITE_SUPABASE_URL",
+      "VITE_SUPABASE_ANON_KEY",
+      "EXPO_PUBLIC_API_BASE (edge functions base)"
+    ],
+    "edge_functions": [
+      "SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "MPESA_CONSUMER_KEY",
+      "MPESA_CONSUMER_SECRET",
+      "MPESA_SHORTCODE",
+      "MPESA_PASSKEY",
+      "MPESA_ENV (sandbox|production)",
+      "MPESA_CALLBACK_URL",
+      "EXPO_ACCESS_TOKEN"
+    ],
+    "never_expose_to_client": [
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "MPESA_*",
+      "EXPO_ACCESS_TOKEN"
+    ]
+  },
+  "folder_structure": {
+    "root": "lmew/",
+    "tree": {
+      "apps": {
+        "mobile": "React Native + Expo app",
+        "admin-web": "React + Vite admin dashboard",
+        "staff-web": "Vue 3 + Vite staff portal"
+      },
+      "packages": {
+        "shared-types": "Generated Supabase types + zod schemas",
+        "supabase-client": "Wrapper for supabase-js (web + RN variants)",
+        "ui-tokens": "Design tokens (colors, spacing) shared across apps"
+      },
+      "supabase": {
+        "migrations": "SQL migration files",
+        "functions": "Edge functions",
+        "seed.sql": "Seed data for local dev"
+      },
+      "docs": "This spec and other project docs",
+      "turbo.json": "Turborepo config",
+      "pnpm-workspace.yaml": "Workspace config"
+    }
+  },
+  "literature_review_references": [
+    "Sharma, R., & Kaur, P. (2020). The Impact of Digital Technologies on Service Management and Customer Satisfaction.",
+    "Wu, Y., & Zhao, X. (2021). Digitalization in Marine Maintenance Operations.",
+    "Anosike, A., Loomes, H., Udokporo, C. K., & Garza-Reyes, J. A. (2023). Exploring the challenges of electric vehicle adoption in final mile parcel delivery.",
+    "Khrais, L. T., & Alghamdi, A. M. (2021). The Role of Mobile Application Acceptance in Shaping E-Customer Service.",
+    "Nicolau, C., Henter, R., Comsit, M., & Roman, N. (2022). The M-Commerce of Solar Energy Applications.",
+    "Nurcahya, D., Nurfauziah, H., & Dwiatmodjo, H. (2022). Comparison of Waterfall Models and Prototyping Models of Meeting Management Information Systems."
+  ],
+  "competitor_analysis": [
+    {
+      "name": "MarineCFO",
+      "type": "Marine management platform",
+      "strengths": [
+        "Vessel maintenance",
+        "Work orders",
+        "Inventory"
+      ],
+      "gap_for_LMEW": "Too costly/complex for SME"
+    },
+    {
+      "name": "Helm CONNECT",
+      "type": "Maritime ops & maintenance",
+      "strengths": [
+        "Work orders",
+        "Technician task assignment",
+        "Realtime reporting"
+      ],
+      "gap_for_LMEW": "Enterprise pricing"
+    },
+    {
+      "name": "AMOS",
+      "type": "Fleet maintenance",
+      "strengths": [
+        "Procurement",
+        "Compliance",
+        "Financial tracking"
+      ],
+      "gap_for_LMEW": "Designed for large fleets"
+    },
+    {
+      "name": "Fleetio",
+      "type": "Fleet/asset mgmt",
+      "strengths": [
+        "Preventive maintenance",
+        "Mobile"
+      ],
+      "gap_for_LMEW": "Vehicle-centric, not marine SME"
+    },
+    {
+      "name": "UpKeep",
+      "type": "CMMS",
+      "strengths": [
+        "Work orders",
+        "Notifications"
+      ],
+      "gap_for_LMEW": "Not marine-specific, per-user pricing"
+    },
+    {
+      "name": "Fiix",
+      "type": "CMMS",
+      "strengths": [
+        "Analytics",
+        "Workflow automation"
+      ],
+      "gap_for_LMEW": "Generic, no M-Pesa"
+    },
+    {
+      "name": "MaintainX",
+      "type": "Maintenance ops",
+      "strengths": [
+        "Work orders",
+        "Team comms"
+      ],
+      "gap_for_LMEW": "No local payments"
+    }
+  ]
+}

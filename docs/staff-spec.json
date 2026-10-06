@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "staff_portal_spec": {
+    "platform": "Vue 3 + Vite + TypeScript",
+    "audience": [
+      "store_manager",
+      "procurement_officer",
+      "receptionist",
+      "supplier"
+    ],
+    "layout": "PrimeVue Menubar + sidebar + content",
+    "routes": [
+      {
+        "path": "/login",
+        "component": "LoginView"
+      },
+      {
+        "path": "/inventory",
+        "component": "InventoryView",
+        "roles": [
+          "store_manager",
+          "procurement_officer"
+        ]
+      },
+      {
+        "path": "/inventory/:id",
+        "component": "InventoryItemView"
+      },
+      {
+        "path": "/stock-movements",
+        "component": "StockMovementsView",
+        "roles": [
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/suppliers",
+        "component": "SuppliersView",
+        "roles": [
+          "procurement_officer",
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/purchase-orders",
+        "component": "PurchaseOrdersView",
+        "roles": [
+          "procurement_officer",
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/purchase-orders/:id",
+        "component": "PurchaseOrderDetailView"
+      },
+      {
+        "path": "/my-orders",
+        "component": "SupplierOrdersView",
+        "roles": [
+          "supplier"
+        ]
+      },
+      {
+        "path": "/walk-in",
+        "component": "WalkInCustomerView",
+        "roles": [
+          "receptionist"
+        ]
+      },
+      {
+        "path": "/appointments",
+        "component": "AppointmentsView",
+        "roles": [
+          "receptionist"
+        ]
+      },
+      {
+        "path": "/service-requests/new",
+        "component": "OnBehalfRequestView",
+        "roles": [
+          "receptionist"
+        ]
+      },
+      {
+        "path": "/reports/inventory",
+        "component": "InventoryReportsView",
+        "roles": [
+          "store_manager"
+        ]
+      },
+      {
+        "path": "/profile",
+        "component": "ProfileView"
+      }
+    ]
+  }
+}

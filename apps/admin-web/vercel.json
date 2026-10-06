@@ -1,0 +1,6 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd ../.. && pnpm --filter @lmew/shared-types build && pnpm --filter @lmew/supabase-client build && pnpm --filter @lmew/ui-tokens build && pnpm --filter @lmew/admin-web build",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

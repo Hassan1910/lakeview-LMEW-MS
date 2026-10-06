@@ -1,0 +1,25 @@
+{
+  "name": "lmew-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lakeview Marine Engineering Works Management System",
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "dev": "turbo dev --filter=@lmew/admin-web --filter=@lmew/mobile",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "pnpm --filter @lmew/shared-types test",
+    "db:types": "supabase gen types typescript --local > packages/shared-types/src/database.types.ts",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.7",
+    "typescript": "^5.5.4",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

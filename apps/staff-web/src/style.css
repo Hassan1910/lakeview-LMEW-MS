@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.staff-nav {
+  background: linear-gradient(135deg, #083A50 0%, #0B4F6C 100%);
+}

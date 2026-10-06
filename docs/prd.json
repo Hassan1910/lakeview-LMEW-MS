@@ -1,0 +1,87 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "prd": {
+    "product_name": "Lakeview Marine Engineering Works Management System",
+    "vision": "A centralized digital platform that automates service requests, project tracking, inventory, invoicing, payments, and reporting for a marine engineering company operating on Lake Victoria, while giving customers a mobile-first way to request services and monitor progress.",
+    "problem_statement": {
+      "current_state": [
+        "Manual recording of customer requests and service orders",
+        "Difficulty tracking ongoing repair and maintenance projects",
+        "Inefficient communication between customers and technicians",
+        "Delays in generating quotations and invoices",
+        "Poor inventory management of spare parts and equipment",
+        "Difficulty generating accurate reports for management",
+        "No online platform for customers to request services or track progress",
+        "Customers far from premises must physically visit or call"
+      ],
+      "desired_state": [
+        "Customers submit and track service requests digitally",
+        "Real-time project status: Request Received, Inspection in Progress, Awaiting Spare Parts, Under Repair, Completed",
+        "Automatic quotation and invoice generation",
+        "Centralized inventory with low-stock alerts",
+        "Role-based dashboards for all staff",
+        "One-click management reports (PDF/CSV)"
+      ]
+    },
+    "goals": {
+      "general": "Develop a mobile application and supporting web dashboards for Lakeview Marine Engineering Works.",
+      "specific": [
+        "Develop a database module for Lakeview Marine Engineering Works.",
+        "Create an administrator web interface for Lakeview Marine Engineering Works.",
+        "Develop a mobile application for front-end users (customers, technicians, supervisors).",
+        "Create a module for generating reports for Lakeview Marine Engineering Works."
+      ]
+    },
+    "success_metrics": [
+      {
+        "metric": "Average service request submission time",
+        "target": "< 2 minutes"
+      },
+      {
+        "metric": "Quotation generation time",
+        "target": "< 30 seconds after inspection"
+      },
+      {
+        "metric": "Reduction in paper records",
+        "target": ">= 80% within 6 months"
+      },
+      {
+        "metric": "Customer satisfaction (in-app rating)",
+        "target": ">= 4.2 / 5"
+      },
+      {
+        "metric": "Low-stock alerts resolved before stockout",
+        "target": ">= 90%"
+      }
+    ],
+    "non_goals": [
+      "No native desktop app",
+      "No IoT/sensor integration in v1",
+      "No multi-tenant SaaS in v1 (single company)",
+      "No offline-first full sync in v1 (basic read cache only)"
+    ],
+    "target_users": [
+      "Customers (vessel owners, fishermen, transport operators)",
+      "Administrator",
+      "Service Manager",
+      "Supervisor",
+      "Technician / Engineer",
+      "Finance Manager",
+      "Store Manager",
+      "Procurement Officer",
+      "Receptionist",
+      "Supplier"
+    ]
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "meta": {
+    "project_name": "Lakeview Marine Engineering Works Management System",
+    "short_name": "LMEW-MS",
+    "version": "1.0.0",
+    "author": "Kevin Kiprotich Langat",
+    "reg_number": "CIS-1-7167-3/2020",
+    "institution": "Kenya Methodist University",
+    "supervisor": "Mr. David Muriithi Kaje",
+    "submission_date": "2025-06",
+    "document_type": "Master Specification for AI-Assisted Development",
+    "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
+  },
+  "mobile_app_spec": {
+    "platform": "React Native + Expo",
+    "navigation": "expo-router with role-based route groups",
+    "route_groups": {
+      "(auth)": [
+        "login",
+        "register",
+        "forgot-password",
+        "otp-verify"
+      ],
+      "(customer)": [
+        "home",
+        "new-request",
+        "my-requests",
+        "request/[id]",
+        "vessels",
+        "vessel/[id]",
+        "quotations",
+        "invoices",
+        "invoice/[id]",
+        "pay/[invoiceId]",
+        "notifications",
+        "profile",
+        "feedback/[serviceRequestId]",
+        "about",
+        "help",
+        "contact",
+        "search"
+      ],
+      "(technician)": [
+        "home",
+        "my-jobs",
+        "job/[id]",
+        "job/[id]/media",
+        "job/[id]/parts",
+        "notifications",
+        "profile"
+      ],
+      "(supervisor)": [
+        "home",
+        "team-jobs",
+        "team-jobs/[id]",
+        "technicians",
+        "reports",
+        "notifications",
+        "profile"
+      ]
+    },
+    "screens": [
+      {
+        "id": "auth.login",
+        "role": "all",
+        "fields": [
+          "email",
+          "password"
+        ],
+        "actions": [
+          "signIn",
+          "goToRegister",
+          "goToForgotPassword"
+        ],
+        "notes": "Show role-based redirect after login using profiles.role"
+      },
+      {
+        "id": "auth.register",
+        "role": "customer",
+        "fields": [
+          "full_name",
+          "email",
+          "phone",
+          "password",
+          "confirm_password"
+        ],
+        "validations": [
+          "email format",
+          "phone +254 format",
+          "password min 8 with number+letter"
+        ],
+        "actions": [
+          "signUp",
+          "upload avatar optional"
+        ]
+      },
+      {
+        "id": "customer.home",
+        "role": "customer",
+        "widgets": [
+          "active request card with status stepper",
+          "quick actions: New Request / Track / Pay",
+          "recent notifications",
+          "recommended services"
+        ],
+        "realtime": "subscribe to notifications:user_id"
+      },
+      {
+        "id": "customer.new-request",
+        "role": "customer",
+        "fields": [
+          "vessel (select or add new)",
+          "category",
+          "title",
+          "description",
+          "priority",
+          "preferred_date",
+          "location_text",
+          "photos (up to 5)"
+        ],
+        "actions": [
+          "submit"
+        ],
+        "on_submit": [
+          "insert service_requests",
+          "upload photos to service-attachments",
+          "navigate to request detail"
+        ]
+      },
+      {
+        "id": "customer.request-detail",
+        "role": "customer",
+        "widgets": [
+          "status stepper",
+          "quotation card",
+          "invoice card",
+          "messages thread",
+          "attachments gallery",
+          "leave feedback (if completed)"
+        ],
+        "realtime": "subscribe to service_requests:id and messages:service_request_id"
+      },
+      {
+        "id": "customer.pay",
+        "role": "customer",
+        "fields": [
+          "phone (M-Pesa)",
+          "amount (readonly)"
+        ],
+        "actions": [
+          "pay via M-Pesa",
+          "mark as paid offline (uploads proof)"
+        ],
+        "on_submit": [
+          "call edge function create-mpesa-payment"
+        ]
+      },
+      {
+        "id": "technician.my-jobs",
+        "role": "technician",
+        "widgets": [
+          "filter tabs: Assigned / In Progress / Completed",
+          "job card: code, customer, vessel, priority, scheduled time"
+        ],
+        "realtime": "subscribe to work_orders where assigned_to = me"
+      },
+      {
+        "id": "technician.job-detail",
+        "role": "technician",
+        "widgets": [
+          "job info",
+          "customer contact",
+          "vessel details",
+          "status update buttons",
+          "upload before/after photos",
+          "request parts form",
+          "notes"
+        ],
+        "actions": [
+          "update status",
+          "upload media",
+          "request parts"
+        ]
+      },
+      {
+        "id": "supervisor.team-jobs",
+        "role": "supervisor",
+        "widgets": [
+          "technician list",
+          "jobs per technician",
+          "performance chart"
+        ]
+      },
+      {
+        "id": "shared.notifications",
+        "role": "all",
+        "widgets": [
+          "list grouped by date",
+          "mark as read",
+          "deep-link to related entity"
+        ]
+      },
+      {
+        "id": "shared.profile",
+        "role": "all",
+        "widgets": [
+          "avatar upload",
+          "edit name/phone/address",
+          "change password",
+          "logout",
+          "language toggle (EN/SW)"
+        ]
+      },
+      {
+        "id": "shared.about",
+        "role": "all",
+        "content_source": "company_info table"
+      },
+      {
+        "id": "shared.help",
+        "role": "all",
+        "content": "FAQ accordion + contact support button"
+      },
+      {
+        "id": "shared.contact",
+        "role": "all",
+        "content_source": "company_info table",
+        "actions": [
+          "call",
+          "email",
+          "open maps",
+          "whatsapp"
+        ]
+      },
+      {
+        "id": "shared.search",
+        "role": "customer",
+        "searches": [
+          "services by category",
+          "own service requests by code/title"
+        ]
+      }
+    ],
+    "status_stepper_labels": {
+      "request_received": "Request Received",
+      "inspection_in_progress": "Inspection in Progress",
+      "quotation_pending": "Preparing Quotation",
+      "quotation_sent": "Quotation Sent",
+      "awaiting_approval": "Awaiting Your Approval",
+      "awaiting_spare_parts": "Awaiting Spare Parts",
+      "under_repair": "Under Repair",
+      "testing": "Testing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "push_notifications": {
+      "provider": "Expo Push + Supabase Edge Function send-notification",
+      "triggers": [
+        "service request status change -> notify customer",
+        "work order assigned -> notify technician",
+        "quotation sent -> notify customer",
+        "invoice issued -> notify customer",
+        "payment confirmed -> notify customer + finance",
+        "low stock -> notify store manager"
+      ]
+    }
+  }
+}
