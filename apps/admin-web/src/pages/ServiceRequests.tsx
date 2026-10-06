@@ -1,13 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { db, watch } from '../lib/supabase';
+import { formatWhen, statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';
+import { useClientPage } from '../components/useClientPage';
+import { Page, Pagination, StatusBadge, Table, inputClass, linkClass, tdClass } from '../components/ui';
 
 type Row = { id: string; code: string | null; title: string; status: string; category: string; priority: string; created_at: string };
 
-const helper = createColumnHelper<Row>();
+const STATUSES = ['request_received', 'inspection_in_progress', 'quotation_pending', 'quotation_sent', 'awaiting_approval', 'awaiting_spare_parts', 'under_repair', 'testing', 'completed', 'cancelled'];
+const CATEGORIES = ['boat_repair', 'ship_repair', 'engine_maintenance', 'fabrication', 'electrical', 'welding', 'equipment_supply', 'consultation', 'other'];
+const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 export const ServiceRequests: React.FC = () => {
   const [params] = useSearchParams();
@@ -32,28 +36,45 @@ export const ServiceRequests: React.FC = () => {
     },
   });
   useEffect(() => watch('service_requests', () => queryClient.invalidateQueries({ queryKey: ['admin-requests'] })), [queryClient]);
-  const columns = useMemo(() => [
-    helper.accessor('code', { header: 'Code', cell: (info) => <Link className="text-[#0B4F6C]" to={`/service-requests/${info.row.original.id}`}>{info.getValue()}</Link> }),
-    helper.accessor('title', { header: 'Title' }),
-    helper.accessor('status', { header: 'Status' }),
-    helper.accessor('category', { header: 'Category' }),
-    helper.accessor('priority', { header: 'Priority' }),
-  ], []);
-  const table = useReactTable({ data: query.data ?? [], columns, getCoreRowModel: getCoreRowModel() });
+  const page = useClientPage(query.data ?? []);
+  const filters: [string, string, (value: string) => void, readonly string[]][] = [
+    ['Status', status, setStatus, STATUSES],
+    ['Category', category, setCategory, CATEGORIES],
+    ['Priority', priority, setPriority, PRIORITIES],
+  ];
+
   return (
-    <div>
-      <div className="mb-3 flex gap-2">
-        <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded border px-2 py-1"><option value="">Status</option>{['request_received','inspection_in_progress','quotation_pending','quotation_sent','awaiting_approval','awaiting_spare_parts','under_repair','testing','completed','cancelled'].map((item) => <option key={item}>{item}</option>)}</select>
-        <select value={category} onChange={(event) => setCategory(event.target.value)} className="rounded border px-2 py-1"><option value="">Category</option>{['boat_repair','ship_repair','engine_maintenance','fabrication','electrical','welding','equipment_supply','consultation','other'].map((item) => <option key={item}>{item}</option>)}</select>
-        <select value={priority} onChange={(event) => setPriority(event.target.value)} className="rounded border px-2 py-1"><option value="">Priority</option>{['low','medium','high','urgent'].map((item) => <option key={item}>{item}</option>)}</select>
-        <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="rounded border px-2 py-1" />
+    <Page title="Service requests" description="Incoming work, from first contact through completion.">
+      <div className="flex flex-wrap gap-2">
+        {filters.map(([label, value, setter, options]) => (
+          <label key={label} className="text-sm">
+            <span className="sr-only">{label}</span>
+            <select className={`${inputClass} w-auto`} value={value} onChange={(event) => { setter(event.target.value); page.setPage(1); }}>
+              <option value="">{label}</option>
+              {options.map((item) => <option key={item} value={item}>{statusLabel(item)}</option>)}
+            </select>
+          </label>
+        ))}
+        <label className="text-sm">
+          <span className="sr-only">From date</span>
+          <input type="date" aria-label="From date" value={from} onChange={(event) => { setFrom(event.target.value); page.setPage(1); }} className={`${inputClass} w-auto`} />
+        </label>
       </div>
       <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data?.length} emptyLabel="No service requests match.">
-        <table className="w-full bg-white text-sm dark:bg-slate-900">
-          <thead>{table.getHeaderGroups().map((group) => <tr key={group.id}>{group.headers.map((header) => <th key={header.id} className="p-2 text-left">{flexRender(header.column.columnDef.header, header.getContext())}</th>)}</tr>)}</thead>
-          <tbody>{table.getRowModel().rows.map((row) => <tr key={row.id} className="border-t">{row.getVisibleCells().map((cell) => <td key={cell.id} className="p-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>)}</tbody>
-        </table>
+        <Table head={['Code', 'Title', 'Status', { content: 'Category', className: 'hidden md:table-cell' }, { content: 'Priority', className: 'hidden lg:table-cell' }, { content: 'Opened', className: 'hidden sm:table-cell' }]}>
+          {page.slice.map((row) => (
+            <tr key={row.id}>
+              <td className={tdClass}><Link className={linkClass} to={`/service-requests/${row.id}`}>{row.code ?? 'Request'}</Link></td>
+              <td className={tdClass}>{row.title}</td>
+              <td className={tdClass}><StatusBadge status={row.status} /></td>
+              <td className={`${tdClass} hidden md:table-cell`}>{statusLabel(row.category)}</td>
+              <td className={`${tdClass} hidden lg:table-cell`}>{statusLabel(row.priority)}</td>
+              <td className={`${tdClass} hidden sm:table-cell`}>{formatWhen(row.created_at)}</td>
+            </tr>
+          ))}
+        </Table>
+        <Pagination page={page.page} pageCount={page.pageCount} total={page.total} onPage={page.setPage} />
       </DataState>
-    </div>
+    </Page>
   );
-};
+}

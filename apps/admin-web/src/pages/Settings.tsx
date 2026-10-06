@@ -12,7 +12,7 @@ export const Settings: React.FC = () => {
     { to: '/audit', label: 'Open audit log', show: can('audit.view') },
   ].filter((link) => link.show);
   return (
-    <Page title="Settings">
+    <Page title="Settings" description="Company profile, people, and the audit trail.">
       <Card>
         <p>Signed in as {profile?.full_name} ({role?.name ?? profile?.role}).</p>
         <p className="text-sm text-slate-500">Demo accounts use password LmewDemo123 after the local seed.</p>

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watch } from '../lib/supabase';
 import { DataState } from '../components/DataState';
+import { Card, Page, StatusBadge, linkClass } from '../components/ui';
 
 export const WorkOrderDetail: React.FC = () => {
   const { id } = useParams();
@@ -26,14 +27,29 @@ export const WorkOrderDetail: React.FC = () => {
   }, [query.data]);
   const row = query.data;
   return (
-    <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null}>
-      <h1 className="text-xl">{row?.code}</h1>
-      <p>Status {row?.status}</p>
-      <p>{row?.notes || 'No notes.'}</p>
-      <h2 className="mt-4 font-semibold">Media</h2>
-      {media.length === 0 ? <p>No media.</p> : media.map((item) => <p key={item.storage_path}>{item.url ? <a href={item.url}>{item.kind}</a> : item.kind}</p>)}
-      <h2 className="mt-4 font-semibold">Parts</h2>
-      {(row?.parts ?? []).length === 0 ? <p>No parts issued.</p> : (row?.parts ?? []).map((item: { quantity: number; inventory_item_id: string }, index: number) => <p key={index}>{item.quantity} of {item.inventory_item_id}</p>)}
+    <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!row} emptyLabel="Work order not found.">
+      {row ? (
+        <Page title={row.code ?? 'Work order'} description="Job notes, media, and issued parts." actions={<Link className={`text-sm ${linkClass}`} to="/work-orders">Back to jobs</Link>}>
+          <div className="flex items-center gap-2"><StatusBadge status={row.status} /></div>
+          <Card title="Notes">
+            <p className="text-sm text-slate-700 dark:text-slate-200">{row.notes || 'No notes.'}</p>
+          </Card>
+          <Card title="Media">
+            {media.length === 0 ? <p className="text-sm text-slate-500">No media.</p> : (
+              <ul className="space-y-1 text-sm">
+                {media.map((item) => <li key={item.storage_path}>{item.url ? <a className={linkClass} href={item.url} target="_blank" rel="noreferrer">{item.kind}</a> : item.kind}</li>)}
+              </ul>
+            )}
+          </Card>
+          <Card title="Parts">
+            {(row.parts ?? []).length === 0 ? <p className="text-sm text-slate-500">No parts issued.</p> : (
+              <ul className="space-y-1 text-sm">
+                {(row.parts ?? []).map((item: { quantity: number; inventory_item_id: string }, index: number) => <li key={index}>{item.quantity} of {item.inventory_item_id}</li>)}
+              </ul>
+            )}
+          </Card>
+        </Page>
+      ) : null}
     </DataState>
   );
 };

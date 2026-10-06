@@ -4,6 +4,7 @@ import type { Permission, Role } from '@lmew/shared-types';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
+import { useConfirm } from '../components/confirm';
 import { Badge, Button, Card, Field, Notice, Page, errorMessage, inputClass } from '../components/ui';
 
 const ACTION_ORDER = ['access', 'view', 'view_own', 'create', 'edit', 'edit_own', 'delete', 'approve', 'reject', 'submit', 'assign', 'manage', 'export', 'print', 'view_reports'];
@@ -14,6 +15,7 @@ type Message = { tone: 'error' | 'success'; text: string } | null;
 
 export const Roles: React.FC = () => {
   const { can, profile, refresh } = useAuth();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const manage = can('roles.manage');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -144,7 +146,7 @@ export const Roles: React.FC = () => {
   };
 
   const deleteRole = async () => {
-    if (!selected || !window.confirm(`Delete the ${selected.name} role? This cannot be undone.`)) return;
+    if (!selected || !await confirm({ title: 'Delete role', description: `Delete the ${selected.name} role? This cannot be undone.`, confirmLabel: 'Delete role' })) return;
     setBusy(true);
     const { error } = await db().from('roles').delete().eq('id', selected.id);
     setBusy(false);

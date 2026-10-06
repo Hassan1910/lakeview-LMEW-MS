@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
+import { formatMoney, statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';
+import { Button, Card, Notice, Page, Table, tdClass } from '../components/ui';
 
 export const Reports: React.FC = () => {
   const { can } = useAuth();
@@ -13,6 +15,7 @@ export const Reports: React.FC = () => {
   const showInventory = can('inventory.view_reports');
   const showFeedback = can('feedback.view');
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ['reports'],
     queryFn: async () => {
@@ -27,7 +30,7 @@ export const Reports: React.FC = () => {
         const name = String(row.status ?? 'unknown');
         acc[name] = (acc[name] ?? 0) + 1;
         return acc;
-      }, {})).map(([name, value]) => ({ name, value }));
+      }, {})).map(([name, value]) => ({ name, label: statusLabel(name), value }));
       const technicians = new Map<string, { name: string; completed: number; open: number }>();
       for (const row of orders.data ?? []) {
         const technician = Array.isArray(row.technician) ? row.technician[0] : row.technician;
@@ -37,10 +40,9 @@ export const Reports: React.FC = () => {
         else if (row.status !== 'cancelled') current.open += 1;
         technicians.set(row.assigned_to, current);
       }
-      const financial = count(invoices.data);
       return {
         service: count(requests.data),
-        financial,
+        financial: count(invoices.data),
         collected: (invoices.data ?? []).reduce((sum, row) => sum + Number(row.amount_paid ?? 0), 0),
         invoiced: (invoices.data ?? []).reduce((sum, row) => sum + Number(row.total ?? 0), 0),
         technicians: [...technicians.values()],
@@ -72,56 +74,92 @@ export const Reports: React.FC = () => {
     link.click();
   };
   const exportPdf = async () => {
-    const { data, error } = await db().functions.invoke('generate-pdf', {
+    setError(null);
+    setMessage(null);
+    const { data, error: invokeError } = await db().functions.invoke('generate-pdf', {
       body: { type: 'report', id: crypto.randomUUID(), title: 'Lakeview Marine operations report', rows: csvLines().slice(1) },
     });
-    if (error || data?.error) setMessage(error?.message ?? data.error);
-    else { setMessage('PDF ready'); window.open(data.signed_url, '_blank'); }
+    if (invokeError || data?.error) setError(invokeError?.message ?? data.error);
+    else { setMessage('PDF ready.'); window.open(data.signed_url, '_blank'); }
   };
 
   const avg = average(query.data?.feedback ?? []);
 
   return (
-    <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null}>
-      <div className="mb-3 flex gap-2">
-        <button onClick={exportCsv}>Export CSV</button>
-        <button onClick={exportPdf}>Export PDF</button>
-      </div>
-      {message ? <p>{message}</p> : null}
-      {showService ? (
-        <>
-          <h2 className="font-semibold">Service report</h2>
-          <div className="h-48">{(query.data?.service.length ?? 0) === 0 ? <p>No service data.</p> : <ResponsiveContainer width="100%" height="100%"><BarChart data={query.data?.service}><XAxis dataKey="name" hide /><YAxis /><Tooltip /><Bar dataKey="value" fill="#0B4F6C" /></BarChart></ResponsiveContainer>}</div>
-        </>
-      ) : null}
-      {showFinance ? (
-        <>
-          <h2 className="mt-4 font-semibold">Financial report</h2>
-          <p>Invoiced KES {query.data?.invoiced ?? 0} · collected KES {query.data?.collected ?? 0}</p>
-          {(query.data?.financial ?? []).map((row) => <p key={row.name}>{row.name}: {row.value}</p>)}
-        </>
-      ) : null}
-      {showTech ? (
-        <>
-          <h2 className="mt-4 font-semibold">Technician performance</h2>
-          {(query.data?.technicians ?? []).map((row) => <p key={row.name}>{row.name}: {row.completed} completed, {row.open} open</p>)}
-          {(query.data?.technicians.length ?? 0) === 0 ? <p>No technician jobs yet.</p> : null}
-        </>
-      ) : null}
-      {showInventory ? (
-        <>
-          <h2 className="mt-4 font-semibold">Inventory at or below reorder</h2>
-          {(query.data?.inventory ?? []).map((row) => <p key={row.sku}>{row.name} ({row.sku}): {row.quantity_on_hand} / reorder {row.reorder_level}</p>)}
-          {(query.data?.inventory.length ?? 0) === 0 ? <p>No items are below reorder.</p> : null}
-        </>
-      ) : null}
-      {showFeedback ? (
-        <>
-          <h2 className="mt-4 font-semibold">Customer feedback</h2>
-          <p>Average rating {avg.toFixed(2)} / 5 from {query.data?.feedback.length ?? 0} responses</p>
-        </>
-      ) : null}
-    </DataState>
+    <Page title="Reports" description="Operational totals for the modules you can report on." actions={(
+      <>
+        <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
+        <Button variant="secondary" onClick={exportPdf}>Export PDF</Button>
+      </>
+    )}>
+      <Notice tone="error">{error}</Notice>
+      <Notice tone="success">{message}</Notice>
+      <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null}>
+        {showService ? (
+          <Card title="Service requests">
+            {(query.data?.service.length ?? 0) === 0 ? <p className="text-sm text-slate-500">No service data.</p> : (
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={query.data?.service}>
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-24} height={64} textAnchor="end" />
+                    <YAxis allowDecimals={false} width={32} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#0B4F6C" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        ) : null}
+        {showFinance ? (
+          <Card title="Finance">
+            <div className="mb-3 grid gap-3 sm:grid-cols-2">
+              <p className="text-sm">Invoiced <span className="font-semibold">{formatMoney(query.data?.invoiced)}</span></p>
+              <p className="text-sm">Collected <span className="font-semibold">{formatMoney(query.data?.collected)}</span></p>
+            </div>
+            <ul className="space-y-1 text-sm">
+              {(query.data?.financial ?? []).map((row) => <li key={row.name} className="flex justify-between gap-3"><span>{row.label}</span><span>{row.value}</span></li>)}
+            </ul>
+          </Card>
+        ) : null}
+        {showTech ? (
+          <Card title="Technician performance">
+            {(query.data?.technicians.length ?? 0) === 0 ? <p className="text-sm text-slate-500">No technician jobs yet.</p> : (
+              <Table head={['Technician', 'Completed', 'Open']}>
+                {(query.data?.technicians ?? []).map((row) => (
+                  <tr key={row.name}>
+                    <td className={tdClass}>{row.name}</td>
+                    <td className={tdClass}>{row.completed}</td>
+                    <td className={tdClass}>{row.open}</td>
+                  </tr>
+                ))}
+              </Table>
+            )}
+          </Card>
+        ) : null}
+        {showInventory ? (
+          <Card title="Inventory at or below reorder">
+            {(query.data?.inventory.length ?? 0) === 0 ? <p className="text-sm text-slate-500">No items are below reorder.</p> : (
+              <Table head={['Item', 'SKU', 'On hand', 'Reorder']}>
+                {(query.data?.inventory ?? []).map((row) => (
+                  <tr key={row.sku}>
+                    <td className={tdClass}>{row.name}</td>
+                    <td className={tdClass}>{row.sku}</td>
+                    <td className={tdClass}>{row.quantity_on_hand}</td>
+                    <td className={tdClass}>{row.reorder_level}</td>
+                  </tr>
+                ))}
+              </Table>
+            )}
+          </Card>
+        ) : null}
+        {showFeedback ? (
+          <Card title="Customer feedback">
+            <p className="text-sm">Average rating <span className="font-semibold">{avg.toFixed(2)} / 5</span> from {query.data?.feedback.length ?? 0} responses.</p>
+          </Card>
+        ) : null}
+      </DataState>
+    </Page>
   );
 };
 

@@ -9,18 +9,9 @@
   }
 }
 
-.glass-nav {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.marine-gradient {
-  background: linear-gradient(135deg, #0A3663 0%, #062140 100%);
-}
-
-.marine-accent-gradient {
-  background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
+:focus-visible {
+  outline: 2px solid #0B4F6C;
+  outline-offset: 2px;
 }
 
 /* Custom scrollbars */

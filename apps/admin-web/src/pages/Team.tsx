@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
+import { Card, Page, StatusBadge, linkClass } from '../components/ui';
 
 type Job = { id: string; code: string | null; status: string };
 
@@ -37,27 +38,32 @@ export const Team: React.FC = () => {
   }, [query.data, mine, profile?.id]);
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Team jobs</h1>
+    <Page
+      title="Team"
+      description="Work grouped by the technician assigned to it."
+      actions={(
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={mine} onChange={(e) => setScope(e.target.checked ? 'mine' : 'all')} /> Only jobs I supervise
+          <input type="checkbox" checked={mine} onChange={(event) => setScope(event.target.checked ? 'mine' : 'all')} />
+          Only jobs I supervise
         </label>
-      </div>
+      )}
+    >
       <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!groups.length} emptyLabel={mine ? 'You are not supervising any jobs.' : 'No team jobs yet.'}>
-        <div className="space-y-4">
+        <div className="grid gap-3 lg:grid-cols-2">
           {groups.map((group) => (
-            <section key={group.name} className="rounded bg-white p-4 dark:bg-slate-900">
-              <h2 className="font-semibold">{group.name}</h2>
-              <ul className="mt-2 space-y-1 text-sm">
+            <Card key={group.name} title={`${group.name} · ${group.jobs.length}`}>
+              <ul className="space-y-2 text-sm">
                 {group.jobs.map((job) => (
-                  <li key={job.id}><Link className="text-[#0B4F6C]" to={`/work-orders/${job.id}`}>{job.code ?? job.id}</Link> · {job.status}</li>
+                  <li key={job.id} className="flex items-center justify-between gap-3">
+                    <Link className={linkClass} to={`/work-orders/${job.id}`}>{job.code ?? 'Work order'}</Link>
+                    <StatusBadge status={job.status} />
+                  </li>
                 ))}
               </ul>
-            </section>
+            </Card>
           ))}
         </div>
       </DataState>
-    </div>
+    </Page>
   );
 };

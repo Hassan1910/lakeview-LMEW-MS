@@ -1,11 +1,15 @@
 <template>
   <main class="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-    <form class="w-full max-w-md space-y-3 rounded bg-white p-6 shadow" @submit.prevent="submit">
-      <h1 class="text-2xl font-semibold text-[#0B4F6C]">Staff portal</h1>
-      <InputText v-model="email" class="w-full" placeholder="Email" />
-      <InputText v-model="password" class="w-full" type="password" placeholder="Password" />
-      <Message v-if="error" severity="error">{{ error }}</Message>
-      <Button type="submit" label="Sign in" :loading="busy" />
+    <form class="w-full max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6" @submit.prevent="submit">
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Lakeview Marine</p>
+        <h1 class="mt-1 text-lg font-semibold text-slate-900">Staff sign in</h1>
+        <p class="mt-1 text-sm text-slate-500">Store, procurement, reception, and supplier accounts.</p>
+      </div>
+      <AppField label="Email" required><input v-model="email" class="field-input" type="email" autocomplete="username" /></AppField>
+      <AppField label="Password" required><input v-model="password" class="field-input" type="password" autocomplete="current-password" /></AppField>
+      <AppNotice tone="error" :message="error" />
+      <AppButton type="submit" class="w-full" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign in' }}</AppButton>
     </form>
   </main>
 </template>
@@ -15,6 +19,9 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { LoginSchema } from '@lmew/shared-types';
 import { useAuthStore } from '../stores/auth';
+import AppField from '../components/AppField.vue';
+import AppButton from '../components/AppButton.vue';
+import AppNotice from '../components/AppNotice.vue';
 
 const email = ref('');
 const password = ref('');

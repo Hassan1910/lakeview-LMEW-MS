@@ -4,7 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
-import { Badge, Button, Card, Field, Notice, Page, Table, errorMessage, inputClass, statusTone } from '../components/ui';
+import { useConfirm } from '../components/confirm';
+import { Badge, Button, Card, Field, Notice, Page, StatusBadge, Table, errorMessage, inputClass } from '../components/ui';
 
 type PoLine = { id: string; description: string; quantity: number; unit_cost: number; line_total: number | null; inventory_item_id: string | null };
 
@@ -12,6 +13,7 @@ export const PurchaseOrderDetail: React.FC = () => {
   const { id } = useParams();
   const { pathname } = useLocation();
   const { can, profile } = useAuth();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [line, setLine] = useState({ itemId: '', description: '', quantity: '1', unitCost: '' });
   const [message, setMessage] = useState<{ tone: 'error' | 'success'; text: string } | null>(null);
@@ -79,10 +81,14 @@ export const PurchaseOrderDetail: React.FC = () => {
     }, 'Line added.');
   };
 
-  const removeLine = (lineId: string) => run(async () => {
+  const removeLine = async (lineId: string) => {
+    const ok = await confirm({ title: 'Remove line', description: 'Remove this line from the purchase order?', confirmLabel: 'Remove line' });
+    if (!ok) return;
+    return run(async () => {
     const { error } = await db().from('purchase_order_items').delete().eq('id', lineId);
     return error?.message ?? null;
   }, 'Line removed.');
+  };
 
   const setStatus = (status: string, extra: Record<string, unknown> = {}) => run(async () => {
     const { data, error } = await db().from('purchase_orders').update({ status, ...extra }).eq('id', id).select('id');
@@ -126,7 +132,7 @@ export const PurchaseOrderDetail: React.FC = () => {
           actions={<Link className="text-sm text-[#0B4F6C] hover:underline dark:text-sky-300" to={isSupplier ? '/my-orders' : '/purchase-orders'}>Back</Link>}
         >
           <div className="flex flex-wrap items-center gap-3">
-            <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+            <StatusBadge status={row.status} />
             <span className="text-lg font-semibold">{row.currency ?? 'KES'} {Number(row.total ?? 0).toLocaleString()}</span>
             {approver?.full_name ? <span className="text-sm text-slate-500">Approved by {approver.full_name}</span> : null}
           </div>
@@ -136,8 +142,8 @@ export const PurchaseOrderDetail: React.FC = () => {
             {row.status === 'draft' && can('purchase_orders.approve') ? <Button disabled={busy || !row.lines.length} onClick={() => setStatus('sent', { approved_by: profile?.id })}>Approve and send</Button> : null}
             {isSupplier && row.status === 'sent' ? <Button disabled={busy} onClick={() => setStatus('acknowledged')}>Acknowledge</Button> : null}
             {isSupplier && (row.status === 'sent' || row.status === 'acknowledged') ? <Button disabled={busy} variant="secondary" onClick={() => setStatus('shipped')}>Mark shipped</Button> : null}
-            {['sent', 'acknowledged', 'shipped'].includes(row.status) && can('stock_movements.create') && can('purchase_orders.edit') ? <Button disabled={busy} onClick={receive}>Receive into stock</Button> : null}
-            {['draft', 'sent'].includes(row.status) && can('purchase_orders.edit') ? <Button disabled={busy} variant="danger" onClick={() => { if (window.confirm('Cancel this purchase order?')) void setStatus('cancelled'); }}>Cancel order</Button> : null}
+            {['sent', 'acknowledged', 'shipped'].includes(row.status) && can('stock_movements.create') && can('purchase_orders.edit') ? <Button disabled={busy} onClick={async () => { if (await confirm({ title: 'Receive stock', description: 'Receive these lines into inventory and close the order?', confirmLabel: 'Receive stock', tone: 'primary' })) receive(); }}>Receive into stock</Button> : null}
+            {['draft', 'sent'].includes(row.status) && can('purchase_orders.edit') ? <Button disabled={busy} variant="danger" onClick={async () => { if (await confirm({ title: 'Cancel order', description: 'Cancel this purchase order?', confirmLabel: 'Cancel order' })) setStatus('cancelled'); }}>Cancel order</Button> : null}
           </div>
           {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
 
