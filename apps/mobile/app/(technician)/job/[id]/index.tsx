@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watchTable } from '../../../../src/lib/db';
 import { ScreenBody } from '../../../../src/components/ScreenBody';
+import { Choice, FieldLine, Notice } from '../../../../src/components/ui';
+import { friendlyError, labelize, one } from '../../../../src/lib/format';
+import { ui } from '../../../../src/theme';
 
 const statuses = ['assigned', 'in_progress', 'blocked', 'completed'] as const;
 
@@ -12,10 +15,13 @@ export default function JobDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState('');
+  const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const query = useQuery({
     queryKey: ['job', id],
+    enabled: Boolean(id),
     queryFn: async () => {
       const { data, error: queryError } = await db().from('work_orders').select('*, service_request:service_requests(title, description, location_text, customer:customers(company_name, profile:profiles(full_name, phone)), vessel:vessels(name, registration_no, engine_details))').eq('id', id).single();
       if (queryError) throw queryError;
@@ -23,39 +29,74 @@ export default function JobDetail() {
     },
   });
 
-  useEffect(() => watchTable('work_orders', () => queryClient.invalidateQueries({ queryKey: ['job', id] }), `id=eq.${id}`), [id, queryClient]);
+  useEffect(() => {
+    if (!id) return;
+    return watchTable('work_orders', () => queryClient.invalidateQueries({ queryKey: ['job', id] }), `id=eq.${id}`);
+  }, [id, queryClient]);
+
+  useEffect(() => {
+    if (hydrated || !query.data) return;
+    setNotes(query.data.notes ?? '');
+    setHydrated(true);
+  }, [hydrated, query.data]);
 
   const updateStatus = async (status: (typeof statuses)[number]) => {
-    const patch: Record<string, string | null> = { status, notes: notes || query.data?.notes };
-    if (status === 'in_progress') patch.actual_start = new Date().toISOString();
+    if (saving) return;
+    setSaving(true);
+    const patch: Record<string, string | null> = { status, notes: notes.trim() || null };
+    if (status === 'in_progress' && !query.data?.actual_start) patch.actual_start = new Date().toISOString();
     if (status === 'completed') patch.actual_end = new Date().toISOString();
     const { error: updateError } = await db().from('work_orders').update(patch).eq('id', id);
-    if (updateError) setError(updateError.message);
-    else { setSuccess(`Status is now ${status}`); setError(null); queryClient.invalidateQueries({ queryKey: ['job', id] }); }
+    setSaving(false);
+    if (updateError) setError(friendlyError(updateError.message));
+    else {
+      setSuccess(`Status is now ${labelize(status)}`);
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ['job', id] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['tech-count'] });
+    }
   };
 
   const job = query.data;
+  const request = one(job?.service_request);
+  const customer = one(request?.customer);
+  const profile = one(customer?.profile);
+  const vessel = one(request?.vessel);
+  const phone = profile?.phone;
+
   return (
-    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null}>
-      <ScrollView contentContainerStyle={styles.pad}>
-        <Text variant="titleLarge">{job?.code}</Text>
-        <Text>{job?.service_request?.title}</Text>
-        <Text>{job?.service_request?.description}</Text>
-        <Text>Customer: {job?.service_request?.customer?.profile?.full_name ?? job?.service_request?.customer?.company_name}</Text>
-        <Text>Phone: {job?.service_request?.customer?.profile?.phone ?? 'Not on file'}</Text>
-        <Text>Scheduled: {job?.scheduled_start ?? 'Not scheduled'}</Text>
-        <Text>Vessel: {job?.service_request?.vessel?.name} {job?.service_request?.vessel?.registration_no}</Text>
-        <Text>Engine: {job?.service_request?.vessel?.engine_details}</Text>
-        <Text>Location: {job?.service_request?.location_text}</Text>
-        <TextInput label="Notes" value={notes} onChangeText={setNotes} mode="outlined" />
-        {statuses.map((status) => <Button key={status} mode={job?.status === status ? 'contained' : 'outlined'} onPress={() => updateStatus(status)}>{status}</Button>)}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {success ? <Text style={styles.ok}>{success}</Text> : null}
-        <Link href={`/(technician)/job/${id}/media`}>Upload photos</Link>
-        <Link href={`/(technician)/job/${id}/parts`}>Request parts</Link>
+    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} onRetry={() => query.refetch()}>
+      <ScrollView contentContainerStyle={ui.pad}>
+        <Text style={ui.title}>{job?.code ?? 'Job'}</Text>
+        <Text style={ui.body}>{request?.title}</Text>
+        <Text style={ui.muted}>{request?.description}</Text>
+        <FieldLine label="Customer" value={profile?.full_name ?? customer?.company_name} />
+        <FieldLine label="Phone" value={phone ?? 'Not on file'} />
+        {phone ? <Button mode="outlined" onPress={() => Linking.openURL(`tel:${phone}`)}>Call customer</Button> : null}
+        <FieldLine label="Scheduled" value={job?.scheduled_start ?? 'Not scheduled'} />
+        <FieldLine label="Vessel" value={[vessel?.name, vessel?.registration_no].filter(Boolean).join(' · ')} />
+        <FieldLine label="Engine" value={vessel?.engine_details} />
+        <FieldLine label="Location" value={request?.location_text} />
+        <Text style={ui.section}>Status</Text>
+        <View style={ui.row}>
+          {statuses.map((status) => (
+            <Choice key={status} label={labelize(status)} selected={job?.status === status} onPress={() => updateStatus(status)} />
+          ))}
+        </View>
+        <TextInput label="Notes" value={notes} onChangeText={setNotes} mode="outlined" multiline />
+        <Button mode="outlined" disabled={saving} onPress={async () => {
+          setSaving(true);
+          const { error: updateError } = await db().from('work_orders').update({ notes: notes.trim() || null }).eq('id', id);
+          setSaving(false);
+          if (updateError) setError(friendlyError(updateError.message));
+          else { setSuccess('Notes saved'); setError(null); queryClient.invalidateQueries({ queryKey: ['job', id] }); }
+        }}>Save notes</Button>
+        {error ? <Notice tone="error" text={error} /> : null}
+        {success ? <Notice tone="ok" text={success} /> : null}
+        <Link href={`/(technician)/job/${id}/media`} asChild><Button mode="contained">Upload photos</Button></Link>
+        <Link href={`/(technician)/job/${id}/parts`} asChild><Button mode="outlined">Request parts</Button></Link>
       </ScrollView>
     </ScreenBody>
   );
 }
-
-const styles = StyleSheet.create({ pad: { padding: 16, gap: 8 }, error: { color: '#EF4444' }, ok: { color: '#22C55E' } });

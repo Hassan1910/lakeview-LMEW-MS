@@ -1,9 +1,11 @@
 import React from 'react';
-import { View } from 'react-native';
-import { Text as PaperText } from 'react-native-paper';
+import { ScrollView, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '../../src/lib/db';
 import { ScreenBody } from '../../src/components/ScreenBody';
+import { one } from '../../src/lib/format';
+import { palette, ui } from '../../src/theme';
 
 export default function SupervisorReports() {
   const query = useQuery({
@@ -13,29 +15,34 @@ export default function SupervisorReports() {
       if (error) throw error;
       const counts = new Map<string, { name: string; completed: number; open: number }>();
       for (const row of data ?? []) {
-        const technician = Array.isArray(row.technician) ? row.technician[0] : row.technician;
-        const name = technician?.full_name ?? row.assigned_to;
-        const current = counts.get(row.assigned_to) ?? { name, completed: 0, open: 0 };
+        const technician = one(row.technician);
+        const key = row.assigned_to ?? 'unassigned';
+        const current = counts.get(key) ?? { name: technician?.full_name ?? 'Unassigned', completed: 0, open: 0 };
         if (row.status === 'completed') current.completed += 1;
-        else current.open += 1;
-        counts.set(row.assigned_to, current);
+        else if (row.status !== 'cancelled') current.open += 1;
+        counts.set(key, current);
       }
       return [...counts.values()];
     },
   });
   return (
-    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data?.length} emptyLabel="No performance data.">
-      {(query.data ?? []).map((row) => {
-        const total = row.completed + row.open || 1;
-        return (
-          <View key={row.name} style={{ marginBottom: 12 }}>
-            <PaperText>{row.name}: {row.completed} completed, {row.open} open</PaperText>
-            <View style={{ height: 10, backgroundColor: '#E2E8F0', borderRadius: 6 }}>
-              <View style={{ width: `${Math.round((row.completed / total) * 100)}%`, height: 10, backgroundColor: '#0B4F6C', borderRadius: 6 }} />
+    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data?.length} emptyLabel="No performance data yet." onRetry={() => query.refetch()}>
+      <ScrollView contentContainerStyle={ui.pad}>
+        <Text style={ui.muted}>Completed jobs against everything still open. Cancelled jobs are left out.</Text>
+        {(query.data ?? []).map((row) => {
+          const total = row.completed + row.open || 1;
+          const width = `${Math.round((row.completed / total) * 100)}%` as const;
+          return (
+            <View key={row.name} style={ui.card}>
+              <Text style={ui.body}>{row.name}</Text>
+              <Text style={ui.muted}>{row.completed} completed · {row.open} open</Text>
+              <View style={{ height: 8, backgroundColor: palette.border, borderRadius: 99 }}>
+                <View style={{ width, height: 8, backgroundColor: palette.primary, borderRadius: 99 }} />
+              </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })}
+      </ScrollView>
     </ScreenBody>
   );
 }

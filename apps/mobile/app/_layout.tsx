@@ -1,26 +1,26 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { lmewMobileTheme } from '../src/theme';
+import { lmewMobileTheme, palette } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
 import { getLmewSupabase, initLmewSupabase } from '@lmew/supabase-client';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
-import type { Profile, UserRole } from '@lmew/shared-types';
+import type { UserRole } from '@lmew/shared-types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { listenForNotificationTaps, registerPushToken } from '../src/lib/push';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 2,
+      staleTime: 15_000,
+      retry: 1,
     },
   },
 });
 
-/** Custom SecureStore adapter for Supabase auth persistence on mobile */
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => SecureStore.getItemAsync(key),
   setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
@@ -67,11 +67,24 @@ function groupForRole(role: UserRole) {
   return 'portal';
 }
 
-/** Auth guard — redirects unauthenticated users to login */
+const header = {
+  headerStyle: { backgroundColor: palette.primary },
+  headerTintColor: '#FFFFFF',
+  headerTitleStyle: { fontWeight: '600' as const },
+  headerShadowVisible: false,
+};
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
-  const { session, profile, isLoading, setSession, setProfile, setLoading } = useAuthStore();
+  const session = useAuthStore((s) => s.session);
+  const profile = useAuthStore((s) => s.profile);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const setSession = useAuthStore((s) => s.setSession);
+  const setProfile = useAuthStore((s) => s.setProfile);
+  const setLoading = useAuthStore((s) => s.setLoading);
+  const loadProfile = useAuthStore((s) => s.loadProfile);
+  const previousUser = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     let supabase: ReturnType<typeof getLmewSupabase>;
@@ -82,44 +95,46 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Load initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(data as Profile | null);
-        if (data?.id) void registerPushToken(data.id);
-      }
-      setLoading(false);
+    void loadProfile().then(() => {
+      const current = useAuthStore.getState().profile;
+      if (current?.id) void registerPushToken(current.id);
     });
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (session) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(data as Profile | null);
-        if (data?.id) void registerPushToken(data.id);
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      if (!nextSession) {
         setProfile(null);
+        return;
       }
+      // Defer the profile query. Awaiting Supabase inside this callback can deadlock the auth client.
+      setTimeout(() => {
+        void loadProfile().then(() => {
+          const current = useAuthStore.getState().profile;
+          if (current?.id) void registerPushToken(current.id);
+        });
+      }, 0);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadProfile, setLoading, setProfile, setSession]);
 
   useEffect(() => {
     if (!profile?.role) return;
     return listenForNotificationTaps(profile.role);
   }, [profile?.role]);
+
+  useEffect(() => {
+    const userId = session?.user.id ?? null;
+    if (previousUser.current === undefined) {
+      previousUser.current = userId;
+      return;
+    }
+    if (previousUser.current !== userId) {
+      queryClient.clear();
+      void AsyncStorage.removeItem(`lmew.requests.cache.${previousUser.current}`);
+    }
+    previousUser.current = userId;
+  }, [session?.user.id]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -141,7 +156,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const home = homeForRole(profile.role);
     const allowed = groupForRole(profile.role);
     if (group !== allowed) router.replace(home);
-  }, [session, isLoading, segments, profile]);
+  }, [session, isLoading, segments, profile, router]);
 
   return <>{children}</>;
 }
@@ -150,17 +165,11 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={lmewMobileTheme}>
-        <StatusBar style="light" backgroundColor="#0B4F6C" />
+        <StatusBar style="light" backgroundColor={palette.primary} />
         <InitSupabase />
         <AuthGuard>
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: '#0B4F6C' },
-              headerTintColor: '#FFFFFF',
-              headerTitleStyle: { fontWeight: 'bold' },
-            }}
-          >
-            <Stack.Screen name="index" options={{ title: 'Lakeview Marine Works' }} />
+          <Stack screenOptions={header}>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(customer)" options={{ headerShown: false }} />
             <Stack.Screen name="(technician)" options={{ headerShown: false }} />

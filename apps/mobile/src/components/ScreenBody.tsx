@@ -1,6 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
+import { friendlyError } from '../lib/format';
+import { palette, ui } from '../theme';
 
 export function ScreenBody({
   loading,
@@ -20,15 +22,15 @@ export function ScreenBody({
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color="#0B4F6C" />
-        <Text style={styles.note}>Loading…</Text>
+        <ActivityIndicator color={palette.primary} />
+        <Text style={ui.muted}>Loading…</Text>
       </View>
     );
   }
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{error}</Text>
+        <Text style={styles.error}>{friendlyError(error)}</Text>
         {onRetry ? <Button mode="contained" onPress={onRetry}>Try again</Button> : null}
       </View>
     );
@@ -36,16 +38,21 @@ export function ScreenBody({
   if (empty) {
     return (
       <View style={styles.center}>
-        <Text style={styles.note}>{emptyLabel ?? 'Nothing here yet.'}</Text>
-        {children}
+        <Text style={ui.body}>{emptyLabel ?? 'Nothing here yet.'}</Text>
       </View>
     );
   }
-  return <>{children}</>;
+  return <View style={ui.screen}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 },
-  note: { color: '#334155', textAlign: 'center' },
-  error: { color: '#EF4444', textAlign: 'center' },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 12,
+    backgroundColor: palette.bg,
+  },
+  error: { color: palette.danger, textAlign: 'center', fontSize: 15, lineHeight: 22 },
 });

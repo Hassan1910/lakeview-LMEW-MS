@@ -1,10 +1,13 @@
 import React from 'react';
-import { View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../src/store/authStore';
 import { db } from '../../src/lib/db';
+import { ScreenBody } from '../../src/components/ScreenBody';
+import { Page } from '../../src/components/ui';
+import { useRefreshOnFocus } from '../../src/lib/focus';
+import { ui } from '../../src/theme';
 
 export default function SupervisorHome() {
   const profile = useAuthStore((s) => s.profile);
@@ -12,19 +15,26 @@ export default function SupervisorHome() {
     queryKey: ['team-open', profile?.id],
     enabled: Boolean(profile?.id),
     queryFn: async () => {
-      const { data, error } = await db().from('work_orders').select('id, status').eq('supervisor_id', profile!.id);
+      const { data, error } = await db().from('work_orders').select('id, status');
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      return {
+        total: rows.length,
+        open: rows.filter((row) => !['completed', 'cancelled'].includes(row.status)).length,
+      };
     },
   });
+  useRefreshOnFocus(() => { if (profile?.id) void query.refetch(); });
   return (
-    <View style={{ padding: 16, gap: 12 }}>
-      <Text variant="titleMedium">{profile?.full_name}</Text>
-      <Text>{query.isLoading ? 'Loading…' : query.error instanceof Error ? query.error.message : `${query.data?.length ?? 0} jobs in view`}</Text>
-      {!query.data?.length && !query.isLoading ? <Text>No team jobs yet.</Text> : null}
-      <Link href="/(supervisor)/team-jobs" asChild><Button mode="contained">Team jobs</Button></Link>
-      <Link href="/(supervisor)/technicians" asChild><Button>Technicians</Button></Link>
-      <Link href="/(supervisor)/reports" asChild><Button>Performance</Button></Link>
-    </View>
+    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} onRetry={() => query.refetch()}>
+      <Page>
+        <Text style={ui.title}>{profile?.full_name}</Text>
+        <Text style={ui.body}>{query.data?.open ?? 0} open · {query.data?.total ?? 0} jobs you can see</Text>
+        {query.data?.total === 0 ? <Text style={ui.muted}>No team jobs yet.</Text> : null}
+        <Link href="/(supervisor)/team-jobs" asChild><Button mode="contained">Team jobs</Button></Link>
+        <Link href="/(supervisor)/technicians" asChild><Button mode="outlined">Technicians</Button></Link>
+        <Link href="/(supervisor)/reports" asChild><Button mode="outlined">Performance</Button></Link>
+      </Page>
+    </ScreenBody>
   );
 }
