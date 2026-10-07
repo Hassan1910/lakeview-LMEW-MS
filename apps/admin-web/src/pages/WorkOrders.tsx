@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watch } from '../lib/supabase';
 import { formatWhen, statusLabel } from '../lib/format';
@@ -7,24 +7,48 @@ import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
 import { Page, Pagination, SearchField, StatusBadge, Table, linkClass, tdClass } from '../components/ui';
 
+const ACTIVE_JOBS = new Set(['assigned', 'in_progress', 'blocked']);
+
 export const WorkOrders: React.FC = () => {
   const queryClient = useQueryClient();
+  const [params, setParams] = useSearchParams();
   const [term, setTerm] = useState('');
-  const [status, setStatus] = useState('');
+  const status = params.get('status') ?? '';
+  const overdueOnly = params.get('overdue') === '1';
+  const setStatus = (value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set('status', value);
+    else next.delete('status');
+    setParams(next, { replace: true });
+  };
+  const setOverdueOnly = (value: boolean) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set('overdue', '1');
+    else next.delete('overdue');
+    setParams(next, { replace: true });
+  };
   const query = useQuery({
     queryKey: ['work-orders'],
     queryFn: async () => {
-      const { data, error } = await db().from('work_orders').select('id, code, status, scheduled_start').order('created_at', { ascending: false });
+      const { data, error } = await db().from('work_orders').select('id, code, status, scheduled_start, scheduled_end').order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
   useEffect(() => watch('work_orders', () => queryClient.invalidateQueries({ queryKey: ['work-orders'] })), [queryClient]);
-  const statuses = useMemo(() => [...new Set((query.data ?? []).map((row) => row.status).filter(Boolean))], [query.data]);
+  const statuses = useMemo(() => {
+    const values = [...new Set((query.data ?? []).map((row) => row.status).filter(Boolean))];
+    if (status && !values.includes(status)) values.unshift(status);
+    return values;
+  }, [query.data, status]);
   const rows = useMemo(() => (query.data ?? []).filter((row) => {
+    if (overdueOnly) {
+      if (!ACTIVE_JOBS.has(row.status ?? '')) return false;
+      if (!row.scheduled_end || new Date(row.scheduled_end).getTime() >= Date.now()) return false;
+    }
     if (status && row.status !== status) return false;
     return `${row.code ?? ''} ${row.status ?? ''}`.toLowerCase().includes(term.trim().toLowerCase());
-  }), [query.data, status, term]);
+  }), [query.data, status, term, overdueOnly]);
   const page = useClientPage(rows);
 
   return (
@@ -38,8 +62,12 @@ export const WorkOrders: React.FC = () => {
             {statuses.map((item) => <option key={item} value={item}>{statusLabel(item)}</option>)}
           </select>
         </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <input type="checkbox" checked={overdueOnly} onChange={(event) => { setOverdueOnly(event.target.checked); page.setPage(1); }} />
+          Overdue only
+        </label>
       </div>
-      <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term || status ? 'No work orders match those filters.' : 'No work orders yet.'}>
+      <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term || status || overdueOnly ? 'No work orders match those filters.' : 'No work orders yet.'}>
         <Table head={['Job', 'Status', { content: 'Scheduled', className: 'hidden sm:table-cell' }]}>
           {page.slice.map((row) => (
             <tr key={row.id}>

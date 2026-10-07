@@ -1,11 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Search } from 'lucide-react';
 import { statusLabel } from '../lib/format';
 
-export const inputClass = 'w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0B4F6C] focus:ring-2 focus:ring-[#0B4F6C]/20 disabled:cursor-not-allowed disabled:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-900';
+export const inputClass = 'w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 outline-hidden transition placeholder:text-slate-400 focus:border-lmew-blue-800 focus:ring-2 focus:ring-[#0B4F6C]/20 disabled:cursor-not-allowed disabled:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:disabled:bg-slate-900';
 
-export const linkClass = 'font-medium text-[#0B4F6C] hover:underline dark:text-sky-300';
+export const linkClass = 'font-medium text-lmew-blue-800 hover:underline dark:text-sky-300';
 
 export const tdClass = 'px-3 py-2.5 align-middle text-slate-700 dark:text-slate-200';
 
@@ -64,14 +64,14 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: '
 
 export function Button({ variant = 'primary', className = '', type = 'button', ...props }: ButtonProps) {
   const styles = {
-    primary: 'border border-[#0B4F6C] bg-[#0B4F6C] text-white hover:bg-[#083A50] focus-visible:outline-[#0B4F6C]',
-    secondary: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 focus-visible:outline-[#0B4F6C] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
+    primary: 'border border-lmew-blue-800 bg-lmew-blue-800 text-white hover:bg-[#083A50] focus-visible:outline-lmew-blue-800',
+    secondary: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 focus-visible:outline-lmew-blue-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
     danger: 'border border-red-700 bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-700',
   }[variant];
   return (
     <button
       type={type}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
       {...props}
     />
   );
@@ -125,11 +125,11 @@ export function Kpi({ label, value, to, hint }: { label: string; value: React.Re
   const body = (
     <>
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+      <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-900 dark:text-slate-50">{value}</p>
+      {hint ? <p className="mt-2 text-xs leading-5 text-slate-500">{hint}</p> : null}
     </>
   );
-  const className = 'block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900';
+  const className = 'block h-full rounded-lg border border-slate-200/80 bg-white p-3.5 transition hover:border-lmew-blue-800/40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lmew-blue-800 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-800 sm:p-4';
   if (to) return <Link to={to} className={className}>{body}</Link>;
   return <div className={className}>{body}</div>;
 }

@@ -1,17 +1,30 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
+import { statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';
 import { Badge, Button, Card, Field, Notice, Page, Table, errorMessage, inputClass, statusTone } from '../components/ui';
+
+const ORDER_STATUSES = ['draft', 'sent', 'acknowledged', 'shipped', 'received', 'cancelled'];
 
 export const PurchaseOrders: React.FC = () => {
   const { can, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [params, setParams] = useSearchParams();
   const [form, setForm] = useState({ supplierId: '', expectedDate: '', notes: '' });
   const [error, setError] = useState<string | null>(null);
+  const view = params.get('open') === '1' ? 'open' : (params.get('status') ?? '');
+  const setView = (value: string) => {
+    const next = new URLSearchParams(params);
+    next.delete('open');
+    next.delete('status');
+    if (value === 'open') next.set('open', '1');
+    else if (value) next.set('status', value);
+    setParams(next, { replace: true });
+  };
 
   const suppliers = useQuery({
     queryKey: ['supplier-options'],
@@ -50,6 +63,12 @@ export const PurchaseOrders: React.FC = () => {
     navigate(`/purchase-orders/${data.id}`);
   };
 
+  const rows = useMemo(() => (query.data ?? []).filter((row) => {
+    if (view === 'open') return row.status !== 'received' && row.status !== 'cancelled';
+    if (view) return row.status === view;
+    return true;
+  }), [query.data, view]);
+
   return (
     <Page title="Purchase orders" description="Draft, approve, send, and receive orders from suppliers.">
       {can('purchase_orders.create') ? (
@@ -68,13 +87,21 @@ export const PurchaseOrders: React.FC = () => {
           <div className="mt-3"><Notice tone="error">{error}</Notice></div>
         </Card>
       ) : null}
-      <DataState loading={query.isLoading} error={errorMessage(query.error)} empty={!query.data?.length} emptyLabel="No purchase orders yet.">
+      <label className="block max-w-xs text-sm">
+        <span className="sr-only">Order status</span>
+        <select className={inputClass} value={view === 'open' || ORDER_STATUSES.includes(view) ? view : ''} onChange={(event) => setView(event.target.value)}>
+          <option value="">All orders</option>
+          <option value="open">Open</option>
+          {ORDER_STATUSES.map((item) => <option key={item} value={item}>{statusLabel(item)}</option>)}
+        </select>
+      </label>
+      <DataState loading={query.isLoading} error={errorMessage(query.error)} empty={!rows.length} emptyLabel={view ? 'No purchase orders match that filter.' : 'No purchase orders yet.'}>
         <Table head={['Code', 'Supplier', 'Status', 'Total', 'Expected', 'Created']}>
-          {(query.data ?? []).map((row) => {
+          {rows.map((row) => {
             const supplier = Array.isArray(row.supplier) ? row.supplier[0] : row.supplier;
             return (
               <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td className="px-3 py-2"><Link className="font-medium text-[#0B4F6C] hover:underline dark:text-sky-300" to={`/purchase-orders/${row.id}`}>{row.code ?? 'Draft'}</Link></td>
+                <td className="px-3 py-2"><Link className="font-medium text-lmew-blue-800 hover:underline dark:text-sky-300" to={`/purchase-orders/${row.id}`}>{row.code ?? 'Draft'}</Link></td>
                 <td className="px-3 py-2">{supplier?.name ?? '—'}</td>
                 <td className="px-3 py-2"><Badge tone={statusTone(row.status)}>{row.status}</Badge></td>
                 <td className="px-3 py-2">{row.currency ?? 'KES'} {Number(row.total ?? 0).toLocaleString()}</td>

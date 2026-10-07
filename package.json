@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "Lakeview Marine Engineering Works Management System",
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@12.9.1",
   "scripts": {
     "dev": "turbo dev --filter=@lmew/admin-web --filter=@lmew/mobile",
     "build": "turbo build",
@@ -15,11 +15,11 @@
   },
   "devDependencies": {
     "turbo": "^2.11.7",
-    "typescript": "^5.5.4",
-    "prettier": "^3.3.3"
+    "typescript": "^6.0.3",
+    "prettier": "^3.9.9"
   },
   "engines": {
     "node": ">=22.13.0",
-    "pnpm": ">=9.0.0"
+    "pnpm": ">=12"
   }
 }

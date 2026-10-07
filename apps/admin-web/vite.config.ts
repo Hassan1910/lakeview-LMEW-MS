@@ -5,10 +5,10 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   // The monorepo keeps one .env at the root; Vite only exposes its VITE_-prefixed keys to the browser.
-  envDir: path.resolve(__dirname, '../..'),
+  envDir: path.resolve(import.meta.dirname, '../..'),
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   server: {

@@ -199,7 +199,7 @@ export const Roles: React.FC = () => {
                       role="option"
                       aria-selected={role.id === selected?.id}
                       onClick={() => { setSelectedId(role.id); setMessage(null); }}
-                      className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm ${role.id === selected?.id ? 'bg-[#0B4F6C] text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                      className={`flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left text-sm ${role.id === selected?.id ? 'bg-lmew-blue-800 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                     >
                       <span>{role.name}{role.is_active ? null : <span className="ml-1 text-xs opacity-70">(inactive)</span>}</span>
                       <span className="text-xs opacity-80">{data.data?.counts.get(role.id) ?? 0}</span>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
@@ -60,7 +60,7 @@ export const MyOrders: React.FC = () => {
         <Table head={['Order', 'Status', 'Total', 'Expected', '']}>
           {orders.map((order) => (
             <tr key={order.id}>
-              <td className="px-3 py-2"><Link className="font-medium text-[#0B4F6C] hover:underline dark:text-sky-300" to={`/my-orders/${order.id}`}>{order.code}</Link></td>
+              <td className="px-3 py-2"><Link className="font-medium text-lmew-blue-800 hover:underline dark:text-sky-300" to={`/my-orders/${order.id}`}>{order.code}</Link></td>
               <td className="px-3 py-2"><StatusBadge status={order.status} /></td>
               <td className="px-3 py-2">{order.currency ?? 'KES'} {Number(order.total ?? 0).toLocaleString()}</td>
               <td className="px-3 py-2">{order.expected_date ?? '—'}</td>

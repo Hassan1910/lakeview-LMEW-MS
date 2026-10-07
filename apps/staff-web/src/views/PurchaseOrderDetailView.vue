@@ -4,7 +4,7 @@
   <template v-else-if="query.data.value">
     <PageHeader :title="query.data.value.code ?? 'Draft purchase order'" :description="`Status ${statusLabel(query.data.value.status)} · ${formatMoney(query.data.value.total)}`">
       <template #actions>
-        <router-link class="text-sm font-medium text-[#0B4F6C] hover:underline" :to="backTo">Back</router-link>
+        <router-link class="text-sm font-medium text-lmew-blue-800 hover:underline" :to="backTo">Back</router-link>
       </template>
     </PageHeader>
     <div class="flex flex-wrap items-center gap-2">

@@ -2,7 +2,7 @@
   <div class="flex min-h-screen bg-slate-50 font-sans text-slate-900">
     <aside :class="[open ? 'translate-x-0' : '-translate-x-full', collapsed ? 'lg:w-16' : 'lg:w-60']" class="fixed inset-y-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:static lg:translate-x-0">
       <div class="flex h-14 items-center gap-2 border-b border-slate-200 px-3" :class="collapsed ? 'lg:justify-center' : ''">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-[#0B4F6C] text-sm font-semibold text-white">L</span>
+        <BrandMark class-name="h-8 w-8 shrink-0" decorative />
         <div :class="collapsed ? 'lg:hidden' : ''">
           <p class="text-sm font-semibold leading-tight">Lakeview Marine</p>
           <p class="text-xs text-slate-500">Staff</p>
@@ -17,7 +17,7 @@
             :to="item.path"
             :title="item.label"
             class="mb-0.5 flex items-center gap-2 rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-slate-100"
-            :class="[collapsed ? 'lg:justify-center' : '', isActive(item.path) ? 'bg-[#0B4F6C]/10 font-medium text-[#0B4F6C] shadow-[inset_2px_0_0_#0B4F6C]' : '']"
+            :class="[collapsed ? 'lg:justify-center' : '', isActive(item.path) ? 'bg-lmew-blue-800/10 font-medium text-lmew-blue-800 shadow-[inset_2px_0_0_#0B4F6C]' : '']"
             @click="open = false"
           >
             <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -38,7 +38,7 @@
         </button>
         <span v-if="lowCount > 0" class="hidden rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 sm:inline">{{ lowCount }} parts at reorder</span>
         <div class="relative ml-auto">
-          <button class="inline-flex h-9 max-w-[14rem] items-center gap-2 rounded-md px-2 text-sm hover:bg-slate-100" :aria-expanded="menu" aria-haspopup="menu" @click="menu = !menu">
+          <button class="inline-flex h-9 max-w-56 items-center gap-2 rounded-md px-2 text-sm hover:bg-slate-100" :aria-expanded="menu" aria-haspopup="menu" @click="menu = !menu">
             <UserRound class="h-4 w-4 shrink-0" aria-hidden="true" />
             <span class="truncate">{{ profile?.full_name }}</span>
           </button>
@@ -72,12 +72,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ArrowLeftRight, CalendarDays, ClipboardList, FilePlus, LayoutDashboard, Menu, Package, PanelLeftClose, PanelLeftOpen, PieChart, ShoppingCart, Truck, UserPlus, UserRound, type LucideIcon } from 'lucide-vue-next';
+import { ArrowLeftRight, CalendarDays, ClipboardList, FilePlus, LayoutDashboard, Menu, Package, PanelLeftClose, PanelLeftOpen, PieChart, ShoppingCart, Truck, UserPlus, UserRound, type LucideIcon } from '@lucide/vue';
 import type { UserRole } from '@lmew/shared-types';
 import { useAuthStore } from '../stores/auth';
 import { db, watch as watchTable } from '../lib/supabase';
 import { statusLabel } from '../lib/format';
 import ConfirmHost from '../components/ConfirmHost.vue';
+import BrandMark from '../components/BrandMark.vue';
 
 const SIDEBAR_KEY = 'lmew-staff-sidebar';
 const auth = useAuthStore();

@@ -12,6 +12,7 @@ import { FieldLine, Notice, Page } from '../components/ui';
 import { useLanguage } from '../i18n';
 import { friendlyError, safeFileName } from '../lib/format';
 import { openNotification } from '../lib/notificationRoutes';
+import { BrandLockup } from '../components/BrandMark';
 import { palette, ui } from '../theme';
 
 function areaFor(role: string | null | undefined) {
@@ -203,6 +204,7 @@ export function AboutScreen() {
   return (
     <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data} emptyLabel="Company profile is not published yet." onRetry={() => query.refetch()}>
       <Page>
+        <BrandLockup tone="dark" />
         <Text style={ui.title}>{query.data?.name}</Text>
         <Text style={ui.body}>{query.data?.about}</Text>
         <FieldLine label="Mission" value={query.data?.mission} />

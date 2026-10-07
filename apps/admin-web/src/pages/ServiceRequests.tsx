@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watch } from '../lib/supabase';
 import { formatWhen, sanitizeSearchTerm, statusLabel } from '../lib/format';
@@ -14,8 +14,15 @@ const CATEGORIES = ['boat_repair', 'ship_repair', 'engine_maintenance', 'fabrica
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 export const ServiceRequests: React.FC = () => {
-  const [params] = useSearchParams();
-  const [status, setStatus] = useState('');
+  const [params, setParams] = useSearchParams();
+  const statusParam = params.get('status') ?? '';
+  const status = STATUSES.includes(statusParam) ? statusParam : '';
+  const setStatus = (value: string) => {
+    const next = new URLSearchParams(params);
+    if (value && STATUSES.includes(value)) next.set('status', value);
+    else next.delete('status');
+    setParams(next, { replace: true });
+  };
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('');
   const [from, setFrom] = useState('');

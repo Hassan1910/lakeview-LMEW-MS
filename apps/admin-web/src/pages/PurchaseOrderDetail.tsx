@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
@@ -115,7 +115,7 @@ export const PurchaseOrderDetail: React.FC = () => {
         <Page
           title={row.code ?? 'Draft purchase order'}
           description={`${supplier?.name ?? 'Unknown supplier'}${row.expected_date ? ` · expected ${row.expected_date}` : ''}`}
-          actions={<Link className="text-sm text-[#0B4F6C] hover:underline dark:text-sky-300" to={isSupplier ? '/my-orders' : '/purchase-orders'}>Back</Link>}
+          actions={<Link className="text-sm text-lmew-blue-800 hover:underline dark:text-sky-300" to={isSupplier ? '/my-orders' : '/purchase-orders'}>Back</Link>}
         >
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={row.status} />

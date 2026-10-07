@@ -3,7 +3,7 @@
   <AppNotice v-else-if="query.isError.value" tone="error" :message="(query.error.value as Error).message" />
   <template v-else-if="query.data.value">
     <PageHeader :title="query.data.value.name" :description="`SKU ${query.data.value.sku} · ${query.data.value.quantity_on_hand} ${query.data.value.unit ?? ''}`.trim()">
-      <template #actions><router-link class="text-sm font-medium text-[#0B4F6C] hover:underline" to="/inventory">Back to inventory</router-link></template>
+      <template #actions><router-link class="text-sm font-medium text-lmew-blue-800 hover:underline" to="/inventory">Back to inventory</router-link></template>
     </PageHeader>
     <AppCard title="Location">
       <p v-if="query.data.value.description" class="mb-3 text-sm text-slate-600">{{ query.data.value.description }}</p>

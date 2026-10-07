@@ -20,7 +20,7 @@
   <template v-else>
     <SimpleTable :head="['Order', 'Status', 'Total']">
       <tr v-for="row in paging.slice.value" :key="row.id" class="cursor-pointer hover:bg-slate-50" @click="router.push(`/purchase-orders/${row.id}`)">
-        <td class="td font-medium text-[#0B4F6C]">{{ row.code ?? 'Draft' }}</td>
+        <td class="td font-medium text-lmew-blue-800">{{ row.code ?? 'Draft' }}</td>
         <td class="td"><AppBadge :status="row.status" /></td>
         <td class="td">{{ formatMoney(row.total) }}</td>
       </tr>

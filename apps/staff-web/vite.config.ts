@@ -4,10 +4,10 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
-  envDir: path.resolve(__dirname, '../..'),
+  envDir: path.resolve(import.meta.dirname, '../..'),
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   server: {

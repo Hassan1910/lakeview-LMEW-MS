@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
@@ -13,8 +13,15 @@ export const Inventory: React.FC = () => {
   const { can } = useAuth();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(blank);
+  const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState('');
-  const [lowOnly, setLowOnly] = useState(false);
+  const lowOnly = params.get('low') === '1';
+  const setLowOnly = (value: boolean) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set('low', '1');
+    else next.delete('low');
+    setParams(next, { replace: true });
+  };
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,7 +123,7 @@ export const Inventory: React.FC = () => {
             return (
               <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
                 <td className="px-3 py-2 font-mono text-xs">{row.sku}</td>
-                <td className="px-3 py-2"><Link className="text-[#0B4F6C] hover:underline dark:text-sky-300" to={`/inventory/${row.id}`}>{row.name}</Link>{row.is_active ? null : <> <Badge>inactive</Badge></>}</td>
+                <td className="px-3 py-2"><Link className="text-lmew-blue-800 hover:underline dark:text-sky-300" to={`/inventory/${row.id}`}>{row.name}</Link>{row.is_active ? null : <> <Badge>inactive</Badge></>}</td>
                 <td className="px-3 py-2">{category?.name ?? '—'}</td>
                 <td className="px-3 py-2">{row.quantity_on_hand} {low ? <Badge tone="amber">low</Badge> : null}</td>
                 <td className="px-3 py-2">{row.reorder_level}</td>

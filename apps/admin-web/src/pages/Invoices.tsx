@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
-import { formatMoney } from '../lib/format';
+import { formatMoney, statusLabel } from '../lib/format';
 import { useConfirm } from '../components/confirm';
 import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
 import { Button, Card, Notice, Page, Pagination, SearchField, StatusBadge, Table, linkClass, tdClass } from '../components/ui';
+
+const INVOICE_STATUSES = ['draft', 'issued', 'partially_paid', 'paid', 'overdue', 'cancelled'];
+const UNPAID = new Set(['issued', 'partially_paid', 'overdue']);
 
 export const Invoices: React.FC = () => {
   const { can } = useAuth();
@@ -17,7 +20,17 @@ export const Invoices: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
   const [term, setTerm] = useState('');
+  const view = params.get('unpaid') === '1' ? 'unpaid' : (params.get('status') ?? '');
+  const setView = (value: string) => {
+    const next = new URLSearchParams(params);
+    next.delete('unpaid');
+    next.delete('status');
+    if (value === 'unpaid') next.set('unpaid', '1');
+    else if (value) next.set('status', value);
+    setParams(next, { replace: true });
+  };
   const query = useQuery({
     queryKey: ['invoices'],
     queryFn: async () => {
@@ -53,7 +66,11 @@ export const Invoices: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['accepted-quotes'] });
     }
   };
-  const rows = useMemo(() => (query.data ?? []).filter((row) => `${row.code ?? ''} ${row.status ?? ''}`.toLowerCase().includes(term.trim().toLowerCase())), [query.data, term]);
+  const rows = useMemo(() => (query.data ?? []).filter((row) => {
+    if (view === 'unpaid' && !UNPAID.has(row.status ?? '')) return false;
+    if (view && view !== 'unpaid' && row.status !== view) return false;
+    return `${row.code ?? ''} ${row.status ?? ''}`.toLowerCase().includes(term.trim().toLowerCase());
+  }), [query.data, term, view]);
   const page = useClientPage(rows);
 
   return (
@@ -72,8 +89,18 @@ export const Invoices: React.FC = () => {
           </ul>
         )}
       </Card> : null}
-      <SearchField value={term} onChange={(value) => { setTerm(value); page.setPage(1); }} placeholder="Search invoice code or status" />
-      <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term ? 'No invoices match that search.' : 'No invoices yet.'}>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField value={term} onChange={(value) => { setTerm(value); page.setPage(1); }} placeholder="Search invoice code or status" />
+        <label className="text-sm">
+          <span className="sr-only">Invoice status</span>
+          <select className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-950" value={INVOICE_STATUSES.includes(view) || view === 'unpaid' ? view : ''} onChange={(event) => { setView(event.target.value); page.setPage(1); }}>
+            <option value="">All invoices</option>
+            <option value="unpaid">Unpaid</option>
+            {INVOICE_STATUSES.map((item) => <option key={item} value={item}>{statusLabel(item)}</option>)}
+          </select>
+        </label>
+      </div>
+      <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term || view ? 'No invoices match that filter.' : 'No invoices yet.'}>
         <Table head={['Invoice', 'Status', 'Total', { content: 'Balance', className: 'hidden sm:table-cell' }]}>
           {page.slice.map((row) => (
             <tr key={row.id}>

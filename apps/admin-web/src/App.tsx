@@ -1,11 +1,14 @@
 import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { ConfirmProvider } from './components/confirm';
 import { canAccess, homePath } from './auth/access';
 import { DashboardLayout } from './layouts/DashboardLayout';
+import { BrandMark } from './components/BrandMark';
 import { LoginPage } from './pages/Login';
+import { ForgotPasswordPage } from './pages/ForgotPassword';
+import { ResetPasswordPage } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { ServiceRequests } from './pages/ServiceRequests';
 import { ServiceRequestDetail } from './pages/ServiceRequestDetail';
@@ -47,7 +50,12 @@ const queryClient = new QueryClient();
 function Guard() {
   const { session, profile, loading, can } = useAuth();
   const { pathname } = useLocation();
-  if (loading) return <p className="p-6">Loading…</p>;
+  if (loading) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-lmew-blue-900 text-sm text-sky-100" role="status">
+      <BrandMark className="h-16 w-16" />
+      Loading your workspace…
+    </div>
+  );
   if (!session || !profile) return <Navigate to="/login" replace />;
   if (!canAccess(can, pathname)) return <Navigate to={homePath(can)} replace />;
   return <DashboardLayout />;
@@ -60,6 +68,8 @@ export const App: React.FC = () => (
         <ConfirmProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<Guard />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/notifications" element={<Notifications />} />
@@ -108,7 +118,12 @@ export const App: React.FC = () => (
 
 function HomeRedirect() {
   const { session, profile, loading, can } = useAuth();
-  if (loading) return <p className="p-6">Loading…</p>;
+  if (loading) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-lmew-blue-900 text-sm text-sky-100" role="status">
+      <BrandMark className="h-16 w-16" />
+      Loading your workspace…
+    </div>
+  );
   if (!session || !profile) return <Navigate to="/login" replace />;
   return <Navigate to={homePath(can)} replace />;
 }

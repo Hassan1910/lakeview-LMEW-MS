@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router';
 import { db } from '../lib/supabase';
 import { statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';

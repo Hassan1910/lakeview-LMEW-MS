@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
@@ -52,7 +52,7 @@ export const Reception: React.FC = () => {
           <div className="md:col-span-2"><Field label="Notes" hint="Phone, contact person, how they found us"><textarea className={inputClass} rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field></div>
           <div className="flex flex-wrap gap-2 md:col-span-2">
             <Button type="submit">Save walk-in</Button>
-            {can('service_requests.create') ? <Link className="rounded border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700" to="/requests/new">Open a service request</Link> : null}
+            {can('service_requests.create') ? <Link className="rounded-sm border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700" to="/requests/new">Open a service request</Link> : null}
           </div>
         </form>
         <div className="mt-3 space-y-2"><Notice tone="error">{error}</Notice><Notice tone="success">{success}</Notice></div>

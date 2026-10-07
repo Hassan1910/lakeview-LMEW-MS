@@ -7,15 +7,13 @@
     "icon": "./assets/icon.png",
     "scheme": "lmew",
     "userInterfaceStyle": "light",
-    "splash": {
-      "backgroundColor": "#0B4F6C"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ke.co.lakeviewmarine.app"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B4F6C"
       },
       "package": "ke.co.lakeviewmarine.app"
@@ -30,7 +28,17 @@
     },
     "plugins": [
       "expo-router",
-      "expo-updates"
+      "expo-updates",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#062140",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "enableFullScreenImage_legacy": true
+        }
+      ]
     ],
     "extra": {
       "router": {

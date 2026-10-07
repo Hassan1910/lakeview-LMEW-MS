@@ -42,7 +42,10 @@ export const InventoryReport: React.FC = () => {
               <BarChart data={rows}>
                 <XAxis dataKey="sku" tick={{ fontSize: 11 }} />
                 <YAxis />
-                <Tooltip formatter={(value: number, _name, entry) => [`${value} (reorder ${entry.payload.reorder})`, entry.payload.name]} />
+                <Tooltip formatter={(value, _name, entry) => {
+                  const payload = (entry && 'payload' in entry ? entry.payload : undefined) as { reorder?: number; name?: string } | undefined;
+                  return [`${Number(value ?? 0)} (reorder ${payload?.reorder ?? 0})`, payload?.name ?? ''];
+                }} />
                 <Bar dataKey="onHand">
                   {rows.map((row) => <Cell key={row.sku} fill={row.onHand <= row.reorder ? '#d97706' : '#0B4F6C'} />)}
                 </Bar>

@@ -123,8 +123,8 @@ export const Audit: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="bg-slate-50 px-3 py-2 dark:bg-slate-950">
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div><p className="mb-1 text-xs font-semibold uppercase text-slate-500">Before</p><pre className="max-h-64 overflow-auto rounded bg-white p-2 text-xs dark:bg-slate-900">{row.before ? JSON.stringify(row.before, null, 2) : '—'}</pre></div>
-                      <div><p className="mb-1 text-xs font-semibold uppercase text-slate-500">After</p><pre className="max-h-64 overflow-auto rounded bg-white p-2 text-xs dark:bg-slate-900">{row.after ? JSON.stringify(row.after, null, 2) : '—'}</pre></div>
+                      <div><p className="mb-1 text-xs font-semibold uppercase text-slate-500">Before</p><pre className="max-h-64 overflow-auto rounded-sm bg-white p-2 text-xs dark:bg-slate-900">{row.before ? JSON.stringify(row.before, null, 2) : '—'}</pre></div>
+                      <div><p className="mb-1 text-xs font-semibold uppercase text-slate-500">After</p><pre className="max-h-64 overflow-auto rounded-sm bg-white p-2 text-xs dark:bg-slate-900">{row.after ? JSON.stringify(row.after, null, 2) : '—'}</pre></div>
                     </div>
                   </td>
                 </tr>

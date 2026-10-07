@@ -8,7 +8,7 @@
     </div>
     <AppCard v-if="pending.length" title="Needs attention">
       <ul class="space-y-2 text-sm">
-        <li v-for="item in pending" :key="item.to"><router-link class="font-medium text-[#0B4F6C] hover:underline" :to="item.to">{{ item.label }}</router-link></li>
+        <li v-for="item in pending" :key="item.to"><router-link class="font-medium text-lmew-blue-800 hover:underline" :to="item.to">{{ item.label }}</router-link></li>
       </ul>
     </AppCard>
     <div class="grid gap-3 lg:grid-cols-2">
@@ -16,7 +16,7 @@
         <p v-if="!openOrders.length" class="text-sm text-slate-500">No open purchase orders.</p>
         <ul v-else class="space-y-2 text-sm">
           <li v-for="order in openOrders" :key="order.id" class="flex items-center justify-between gap-3">
-            <router-link class="font-medium text-[#0B4F6C] hover:underline" :to="`/purchase-orders/${order.id}`">{{ order.code ?? 'Draft order' }}</router-link>
+            <router-link class="font-medium text-lmew-blue-800 hover:underline" :to="`/purchase-orders/${order.id}`">{{ order.code ?? 'Draft order' }}</router-link>
             <AppBadge :status="order.status" />
           </li>
         </ul>
@@ -31,7 +31,7 @@
         <p v-if="!supplierOrders.length" class="text-sm text-slate-500">No orders have been sent to you yet.</p>
         <ul v-else class="space-y-2 text-sm">
           <li v-for="order in supplierOrders" :key="order.id" class="flex items-center justify-between gap-3">
-            <router-link class="font-medium text-[#0B4F6C] hover:underline" :to="`/purchase-orders/${order.id}`">{{ order.code }}</router-link>
+            <router-link class="font-medium text-lmew-blue-800 hover:underline" :to="`/purchase-orders/${order.id}`">{{ order.code }}</router-link>
             <AppBadge :status="order.status" />
           </li>
         </ul>

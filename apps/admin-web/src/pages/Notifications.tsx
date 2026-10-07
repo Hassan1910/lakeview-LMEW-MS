@@ -46,7 +46,7 @@ export const Notifications: React.FC = () => {
       <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term ? 'No notifications match that search.' : 'No notifications yet.'}>
         <ul className="space-y-2">
           {page.slice.map((row) => (
-            <li key={row.id} className={`rounded-lg border bg-white p-3 dark:bg-slate-900 ${row.read_at ? 'border-slate-200 dark:border-slate-800' : 'border-[#0B4F6C]/30'}`}>
+            <li key={row.id} className={`rounded-lg border bg-white p-3 dark:bg-slate-900 ${row.read_at ? 'border-slate-200 dark:border-slate-800' : 'border-lmew-blue-800/30'}`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium">{row.title}</p>

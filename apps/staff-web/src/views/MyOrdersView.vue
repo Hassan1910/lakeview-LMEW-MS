@@ -7,7 +7,7 @@
   <EmptyState v-else-if="!(query.data.value ?? []).length" title="No orders have been sent to you yet." />
   <SimpleTable v-else :head="['Order', 'Status', 'Total', '']">
     <tr v-for="order in query.data.value" :key="order.id">
-      <td class="td"><router-link class="font-medium text-[#0B4F6C] hover:underline" :to="`/purchase-orders/${order.id}`">{{ order.code }}</router-link></td>
+      <td class="td"><router-link class="font-medium text-lmew-blue-800 hover:underline" :to="`/purchase-orders/${order.id}`">{{ order.code }}</router-link></td>
       <td class="td"><AppBadge :status="order.status" /></td>
       <td class="td">{{ formatMoney(order.total) }}</td>
       <td class="td text-right">

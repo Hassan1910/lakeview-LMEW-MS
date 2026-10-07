@@ -17,11 +17,11 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.117.2",
     "@lmew/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "tsup": "^8.2.4",
-    "typescript": "^5.5.4"
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
   }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { Card, Page } from '../components/ui';
 
@@ -17,7 +17,7 @@ export const Settings: React.FC = () => {
         <p>Signed in as {profile?.full_name} ({role?.name ?? profile?.role}).</p>
         <p className="text-sm text-slate-500">Online checkout uses Paystack. Issued invoices are due 14 days after they are created. Cash, bank, and M-Pesa receipts are recorded under Payments.</p>
         <ul className="mt-3 space-y-1">
-          {links.map((link) => <li key={link.to}><Link className="text-[#0B4F6C] hover:underline dark:text-sky-300" to={link.to}>{link.label}</Link></li>)}
+          {links.map((link) => <li key={link.to}><Link className="text-lmew-blue-800 hover:underline dark:text-sky-300" to={link.to}>{link.label}</Link></li>)}
         </ul>
       </Card>
     </Page>

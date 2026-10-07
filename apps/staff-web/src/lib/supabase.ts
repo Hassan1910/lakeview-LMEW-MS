@@ -1,7 +1,13 @@
 import { getLmewSupabase, initLmewSupabase, subscribePostgresChanges } from '@lmew/supabase-client';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+function publicEnv(name: 'VITE_SUPABASE_URL' | 'VITE_SUPABASE_ANON_KEY'): string | undefined {
+  const runtime = typeof window !== 'undefined' ? window.__LMEW_PUBLIC_ENV__?.[name] : undefined;
+  if (runtime) return runtime;
+  return import.meta.env[name] as string | undefined;
+}
+
+const url = publicEnv('VITE_SUPABASE_URL');
+const key = publicEnv('VITE_SUPABASE_ANON_KEY');
 
 export const supabase = url && key ? initLmewSupabase({ supabaseUrl: url, supabaseAnonKey: key }) : safe();
 

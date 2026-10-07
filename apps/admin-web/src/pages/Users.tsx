@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Role } from '@lmew/shared-types';
 import { db } from '../lib/supabase';
@@ -22,10 +23,18 @@ export const Users: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('staff');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [search, setSearch] = useState('');
+  const [params, setParams] = useSearchParams();
   const [message, setMessage] = useState<Message>(null);
-  const [showCreate, setShowCreate] = useState(false);
+  const showCreate = params.get('new') === '1';
   const [createForm, setCreateForm] = useState(blankCreate);
   const [createMessage, setCreateMessage] = useState<Message>(null);
+  const toggleCreate = () => {
+    const next = new URLSearchParams(params);
+    if (showCreate) next.delete('new');
+    else next.set('new', '1');
+    setParams(next, { replace: true });
+    setCreateMessage(null);
+  };
   const [passwordFor, setPasswordFor] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -144,7 +153,7 @@ export const Users: React.FC = () => {
     <Page
       title="Users"
       description="Staff, supplier, and customer accounts. Roles decide what each account can do."
-      actions={manage ? <Button onClick={() => { setShowCreate(!showCreate); setCreateMessage(null); }}>{showCreate ? 'Close' : 'New account'}</Button> : null}
+      actions={manage ? <Button onClick={toggleCreate}>{showCreate ? 'Close' : 'New account'}</Button> : null}
     >
       {manage && showCreate ? (
         <Card title="Create an account">

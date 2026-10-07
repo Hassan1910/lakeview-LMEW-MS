@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
@@ -68,7 +68,7 @@ export const InventoryDetail: React.FC = () => {
   return (
     <DataState loading={item.isLoading} error={errorMessage(item.error)} empty={!row} emptyLabel="Item not found or not visible to your role.">
       {row ? (
-        <Page title={row.name} description={`SKU ${row.sku} · ${category?.name ?? 'Uncategorised'}`} actions={<Link className="text-sm text-[#0B4F6C] hover:underline dark:text-sky-300" to="/inventory">Back to inventory</Link>}>
+        <Page title={row.name} description={`SKU ${row.sku} · ${category?.name ?? 'Uncategorised'}`} actions={<Link className="text-sm text-lmew-blue-800 hover:underline dark:text-sky-300" to="/inventory">Back to inventory</Link>}>
           <div className="grid gap-4 md:grid-cols-3">
             <Card title="On hand"><p className="text-3xl font-semibold">{row.quantity_on_hand} <span className="text-base font-normal text-slate-500">{row.unit}</span></p><p className="text-sm text-slate-500">Reorder at {row.reorder_level}</p></Card>
             <Card title="Pricing"><p>Cost KES {Number(row.unit_cost ?? 0).toLocaleString()}</p><p>Price KES {Number(row.unit_price ?? 0).toLocaleString()}</p></Card>

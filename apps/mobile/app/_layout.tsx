@@ -165,7 +165,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={lmewMobileTheme}>
-        <StatusBar style="light" backgroundColor={palette.primary} />
+        <StatusBar style="light" />
         <InitSupabase />
         <AuthGuard>
           <Stack screenOptions={header}>
