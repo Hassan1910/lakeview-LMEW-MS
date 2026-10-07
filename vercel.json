@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "admin-web": {
+      "root": "apps/admin-web",
+      "framework": "vite",
+      "buildCommand": "cd ../.. && pnpm --filter @lmew/shared-types build && pnpm --filter @lmew/supabase-client build && pnpm --filter @lmew/ui-tokens build && pnpm --filter @lmew/admin-web build",
+      "outputDirectory": "dist",
+      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+    },
+    "staff-web": {
+      "root": "apps/staff-web",
+      "framework": "vite",
+      "buildCommand": "cd ../.. && pnpm --filter @lmew/shared-types build && pnpm --filter @lmew/supabase-client build && pnpm --filter @lmew/ui-tokens build && pnpm --filter @lmew/staff-web build",
+      "outputDirectory": "dist",
+      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+    }
+  },
+  "rewrites": [
+    { "source": "/staff", "destination": { "service": "staff-web", "path": "/" } },
+    { "source": "/staff/(.*)", "destination": { "service": "staff-web", "path": "/$1" } },
+    { "source": "/(.*)", "destination": { "service": "admin-web" } }
+  ]
+}
