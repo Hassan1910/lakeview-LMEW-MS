@@ -5,15 +5,15 @@ const password = process.env.E2E_PASSWORD;
 
 async function signIn(page: Page, email: string) {
   await page.goto('/login');
-  await page.getByPlaceholder('Email').fill(email);
-  await page.getByPlaceholder('Password').fill(password!);
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
 }
 
 test('everyone signs in on the same form', async ({ page }) => {
   await page.goto('/login');
-  await expect(page.getByPlaceholder('Email')).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
 });
 
