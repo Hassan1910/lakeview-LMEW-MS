@@ -7,7 +7,7 @@ export default {
         lmew: {
           blue: {
             900: '#062140',
-            800: '#0A3663',
+            800: '#0B4F6C',
             700: '#0F4C81',
           },
           teal: {
@@ -15,6 +15,9 @@ export default {
             600: '#0284C7',
           },
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
       },
     },
   },

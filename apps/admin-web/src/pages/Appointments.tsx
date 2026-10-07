@@ -4,6 +4,7 @@ import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
 import { useCustomerOptions, useVesselOptions } from '../lib/options';
+import { statusLabel } from '../lib/format';
 import { Badge, Button, Card, Field, Notice, Page, Table, errorMessage, inputClass, statusTone } from '../components/ui';
 
 const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
@@ -101,9 +102,9 @@ export const Appointments: React.FC = () => {
                 <td className="px-3 py-2">
                   {can('appointments.edit') ? (
                     <select aria-label="Appointment status" className={`${inputClass} w-36`} value={row.status ?? 'scheduled'} onChange={(e) => setStatus(row.id, e.target.value)}>
-                      {[...new Set([row.status ?? 'scheduled', ...STATUSES])].map((status) => <option key={status} value={status}>{status}</option>)}
+                      {[...new Set([row.status ?? 'scheduled', ...STATUSES])].map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                     </select>
-                  ) : <Badge tone={statusTone(row.status)}>{row.status ?? 'scheduled'}</Badge>}
+                  ) : <Badge tone={statusTone(row.status)}>{statusLabel(row.status ?? 'scheduled')}</Badge>}
                 </td>
               </tr>
             );

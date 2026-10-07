@@ -1,49 +1,71 @@
 <template>
-  <section>
-    <h1 class="mb-4 text-xl font-semibold">Inventory</h1>
-    <form class="mb-6 grid gap-2 md:grid-cols-3" @submit.prevent="submit">
-      <InputText v-model="name" placeholder="Name" />
-      <InputText v-model="sku" placeholder="SKU" />
-      <InputText v-model="unitPrice" placeholder="Unit price" />
-      <InputText v-model="unitCost" placeholder="Unit cost" />
-      <InputText v-model="reorderLevel" placeholder="Reorder level" />
-      <InputText v-model="categoryName" placeholder="Category" />
-      <Message v-if="formError" severity="error">{{ formError }}</Message>
-      <Message v-if="success" severity="success">{{ success }}</Message>
-      <Button type="submit" label="Add part" />
+  <PageHeader title="Inventory" description="Parts on hand and the reorder point for each one." />
+  <AppCard title="Add a part">
+    <form class="grid gap-3 md:grid-cols-3" @submit.prevent="submit">
+      <AppField label="Name" required><input v-model="name" class="field-input" /></AppField>
+      <AppField label="SKU" required><input v-model="sku" class="field-input" /></AppField>
+      <AppField label="Category" required><input v-model="categoryName" class="field-input" /></AppField>
+      <AppField label="Unit price" required><input v-model="unitPrice" class="field-input" inputmode="decimal" /></AppField>
+      <AppField label="Unit cost" required><input v-model="unitCost" class="field-input" inputmode="decimal" /></AppField>
+      <AppField label="Reorder level" required><input v-model="reorderLevel" class="field-input" inputmode="numeric" /></AppField>
+      <div class="md:col-span-3"><AppButton type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Add part' }}</AppButton></div>
     </form>
-    <p v-if="query.isLoading.value">Loading…</p>
-    <p v-else-if="query.isError.value" class="text-red-600">{{ (query.error.value as Error).message }}</p>
-    <p v-else-if="!(query.data.value ?? []).length">No inventory items.</p>
-    <DataTable v-else :value="query.data.value" @row-click="open">
-      <Column field="sku" header="SKU" />
-      <Column field="name" header="Name" />
-      <Column field="quantity_on_hand" header="On hand" />
-      <Column field="reorder_level" header="Reorder" />
-      <Column field="unit_price" header="Price" />
-    </DataTable>
-  </section>
+    <div class="mt-3 space-y-2">
+      <AppNotice tone="error" :message="formError" />
+      <AppNotice tone="success" :message="success" />
+    </div>
+  </AppCard>
+  <SearchField v-model="term" placeholder="Search name or SKU" @update:model-value="paging.reset()" />
+  <SkeletonRows v-if="query.isLoading.value" />
+  <AppNotice v-else-if="query.isError.value" tone="error" :message="(query.error.value as Error).message" />
+  <EmptyState v-else-if="!filtered.length" :title="term ? 'No parts match that search.' : 'No inventory items yet.'" />
+  <template v-else>
+    <SimpleTable :head="['SKU', 'Name', 'On hand', 'Reorder', { label: 'Price', className: 'hidden sm:table-cell' }]">
+      <tr v-for="row in paging.slice.value" :key="row.id" class="cursor-pointer hover:bg-slate-50" @click="open(row.id)">
+        <td class="td font-medium text-slate-900">{{ row.sku }}</td>
+        <td class="td">{{ row.name }}</td>
+        <td class="td">{{ row.quantity_on_hand }}</td>
+        <td class="td">{{ row.reorder_level }}</td>
+        <td class="td hidden sm:table-cell">{{ formatMoney(row.unit_price) }}</td>
+      </tr>
+    </SimpleTable>
+    <PaginationBar :page="paging.page.value" :page-count="paging.pageCount.value" :total="paging.total.value" @update:page="paging.setPage" />
+  </template>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { toTypedSchema } from '@vee-validate/zod';
 import { useForm } from 'vee-validate';
 import { z } from 'zod';
 import { db } from '../lib/supabase';
+import { formatMoney } from '../lib/format';
+import { useClientPage } from '../lib/paging';
+import PageHeader from '../components/PageHeader.vue';
+import AppCard from '../components/AppCard.vue';
+import AppField from '../components/AppField.vue';
+import AppButton from '../components/AppButton.vue';
+import AppNotice from '../components/AppNotice.vue';
+import SearchField from '../components/SearchField.vue';
+import SkeletonRows from '../components/SkeletonRows.vue';
+import EmptyState from '../components/EmptyState.vue';
+import SimpleTable from '../components/SimpleTable.vue';
+import PaginationBar from '../components/PaginationBar.vue';
 
 const router = useRouter();
 const queryClient = useQueryClient();
 const success = ref<string | null>(null);
+const saving = ref(false);
+const term = ref('');
 const schema = toTypedSchema(z.object({
-  name: z.string().min(2),
-  sku: z.string().min(2),
-  unitPrice: z.string().min(1),
-  unitCost: z.string().min(1),
-  reorderLevel: z.string().min(1),
-  categoryName: z.string().min(2),
+  name: z.string().min(2, 'Name needs at least 2 characters'),
+  sku: z.string().min(2, 'SKU needs at least 2 characters'),
+  unitPrice: z.string().min(1, 'Enter a unit price'),
+  unitCost: z.string().min(1, 'Enter a unit cost'),
+  reorderLevel: z.string().min(1, 'Enter a reorder level'),
+  categoryName: z.string().min(2, 'Category needs at least 2 characters'),
 }));
 const { handleSubmit, defineField, errors } = useForm({ validationSchema: schema });
 const [name] = defineField('name');
@@ -62,17 +84,23 @@ const query = useQuery({
     return data ?? [];
   },
 });
+const filtered = computed(() => (query.data.value ?? []).filter((row) => `${row.sku} ${row.name}`.toLowerCase().includes(term.value.trim().toLowerCase())));
+const paging = useClientPage(filtered);
 
 const submit = handleSubmit(async (values) => {
   const price = Number(values.unitPrice);
   const cost = Number(values.unitCost);
   const reorder = Number(values.reorderLevel);
-  if ([price, cost, reorder].some((value) => Number.isNaN(value) || value < 0)) return formError.value = 'Price, cost, and reorder level must be numbers';
+  if ([price, cost, reorder].some((value) => Number.isNaN(value) || value < 0)) return formError.value = 'Price, cost, and reorder level must be numbers.';
+  saving.value = true;
   const existing = await db().from('inventory_categories').select('id').eq('name', values.categoryName).maybeSingle();
   let categoryId = existing.data?.id as string | undefined;
   if (!categoryId) {
     const created = await db().from('inventory_categories').insert({ name: values.categoryName }).select('id').single();
-    if (created.error) return formError.value = created.error.message;
+    if (created.error) {
+      saving.value = false;
+      return formError.value = created.error.message;
+    }
     categoryId = created.data.id;
   }
   const { error } = await db().from('inventory_items').insert({
@@ -83,12 +111,13 @@ const submit = handleSubmit(async (values) => {
     reorder_level: reorder,
     category_id: categoryId,
   });
+  saving.value = false;
   formError.value = error?.message ?? errors.value.name ?? null;
-  success.value = error ? null : 'Part saved';
+  success.value = error ? null : 'Part saved.';
   if (!error) queryClient.invalidateQueries({ queryKey: ['inventory'] });
 });
 
-function open(event: { data: { id: string } }) {
-  router.push(`/inventory/${event.data.id}`);
+function open(id: string) {
+  router.push(`/inventory/${id}`);
 }
 </script>

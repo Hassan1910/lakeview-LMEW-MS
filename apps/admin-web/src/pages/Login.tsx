@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginSchema, type LoginInput } from '@lmew/shared-types';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { Button, Field, Notice, inputClass } from '../components/ui';
 
 export const LoginPage: React.FC = () => {
   const { session, profile, signIn, loading, error: authError } = useAuth();
@@ -18,14 +19,20 @@ export const LoginPage: React.FC = () => {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-xl bg-white p-6 shadow">
-        <h1 className="text-2xl font-semibold text-[#0B4F6C]">Lakeview Marine</h1>
-        <p className="text-sm text-slate-600">One sign-in for every staff role and supplier. You will see the modules your role allows.</p>
-        <input className="w-full rounded border p-2" placeholder="Email" {...form.register('email')} />
-        <input className="w-full rounded border p-2" placeholder="Password" type="password" {...form.register('password')} />
-        {form.formState.errors.email ? <p className="text-red-600">{form.formState.errors.email.message}</p> : null}
-        {error || authError ? <p className="text-red-600">{error || authError}</p> : null}
-        <button className="w-full rounded bg-[#0B4F6C] p-2 text-white" disabled={form.formState.isSubmitting || (loading && !!session)}>{loading && session ? 'Signing in…' : 'Sign in'}</button>
+      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Lakeview Marine</p>
+          <h1 className="mt-1 text-lg font-semibold text-slate-900">Sign in</h1>
+          <p className="mt-1 text-sm text-slate-500">One sign-in for every staff role and supplier. You will see the modules your role allows.</p>
+        </div>
+        <Field label="Email" required>
+          <input className={inputClass} type="email" autoComplete="username" {...form.register('email')} />
+        </Field>
+        <Field label="Password" required>
+          <input className={inputClass} type="password" autoComplete="current-password" {...form.register('password')} />
+        </Field>
+        <Notice tone="error">{form.formState.errors.email?.message ?? form.formState.errors.password?.message ?? error ?? authError}</Notice>
+        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting || (loading && !!session)}>{form.formState.isSubmitting || (loading && session) ? 'Signing in…' : 'Sign in'}</Button>
       </form>
     </main>
   );

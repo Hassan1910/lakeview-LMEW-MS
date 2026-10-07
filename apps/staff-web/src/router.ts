@@ -14,6 +14,7 @@ import AppointmentsView from './views/AppointmentsView.vue';
 import NewRequestView from './views/NewRequestView.vue';
 import InventoryReportView from './views/InventoryReportView.vue';
 import ProfileView from './views/ProfileView.vue';
+import HomeView from './views/HomeView.vue';
 import { useAuthStore } from './stores/auth';
 
 const routes: RouteRecordRaw[] = [
@@ -23,10 +24,10 @@ const routes: RouteRecordRaw[] = [
     component: StaffLayout,
     meta: { auth: true },
     children: [
-      { path: '', redirect: '/inventory' },
+      { path: '', component: HomeView, meta: { roles: ['store_manager', 'procurement_officer', 'receptionist', 'supplier', 'administrator'] } },
       { path: 'inventory', component: InventoryView, meta: { roles: ['store_manager', 'procurement_officer', 'administrator'] } },
       { path: 'inventory/:id', component: InventoryDetailView, meta: { roles: ['store_manager', 'procurement_officer', 'administrator'] } },
-      { path: 'stock-movements', component: StockMovementsView, meta: { roles: ['store_manager', 'administrator'] } },
+      { path: 'stock-movements', component: StockMovementsView, meta: { roles: ['store_manager', 'procurement_officer', 'administrator'] } },
       { path: 'purchase-orders', component: PurchaseOrdersView, meta: { roles: ['store_manager', 'procurement_officer', 'administrator'] } },
       { path: 'purchase-orders/:id', component: PurchaseOrderDetailView, meta: { roles: ['store_manager', 'procurement_officer', 'administrator', 'supplier'] } },
       { path: 'suppliers', component: SuppliersView, meta: { roles: ['store_manager', 'procurement_officer', 'administrator'] } },
@@ -53,8 +54,6 @@ router.beforeEach(async (to) => {
   return true;
 });
 
-function homeFor(role: UserRole) {
-  if (role === 'supplier') return '/my-orders';
-  if (role === 'receptionist') return '/walk-in';
-  return '/inventory';
+function homeFor(_role: UserRole) {
+  return '/';
 }

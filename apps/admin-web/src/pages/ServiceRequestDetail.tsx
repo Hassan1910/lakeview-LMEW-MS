@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watch } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
+import { formatMoney, formatWhen, statusLabel } from '../lib/format';
+import { useConfirm } from '../components/confirm';
 import { DataState } from '../components/DataState';
+import { Button, Card, Field, Notice, Page, StatusBadge, inputClass, linkClass } from '../components/ui';
 
 const statuses = ['request_received', 'inspection_in_progress', 'quotation_pending', 'quotation_sent', 'awaiting_approval', 'awaiting_spare_parts', 'under_repair', 'testing', 'completed', 'cancelled'];
 
@@ -27,6 +30,7 @@ export const ServiceRequestDetail: React.FC = () => {
   const canAssignTech = can('work_orders.assign') && can('work_orders.create');
   const canMessage = can('messages.create');
   const canViewMessages = can('messages.view') || canMessage;
+  const confirm = useConfirm();
 
   const query = useQuery({
     queryKey: ['admin-request', id],
@@ -112,78 +116,137 @@ export const ServiceRequestDetail: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-request', id] });
   };
   const issue = async (quotationId: string) => {
+    const ok = await confirm({ title: 'Issue invoice', description: 'Create an invoice from this accepted quotation?', confirmLabel: 'Issue invoice', tone: 'primary' });
+    if (!ok) return;
     const { error: rpcError } = await db().rpc('issue_invoice_from_quotation', { p_quotation_id: quotationId });
     setError(rpcError?.message ?? null);
     setSuccess(rpcError ? null : 'Invoice issued from quotation');
     queryClient.invalidateQueries({ queryKey: ['admin-request', id] });
   };
 
+  const changeStatus = async (next: string) => {
+    if (next === 'cancelled') {
+      const ok = await confirm({ title: 'Cancel request', description: 'Mark this service request as cancelled?', confirmLabel: 'Cancel request' });
+      if (!ok) return;
+    }
+    save({ status: next });
+  };
+
   const row = query.data?.request;
   return (
-    <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null}>
-      <h1 className="text-xl font-semibold">{row?.code} · {row?.title}</h1>
-      <p className="my-2">{row?.description}</p>
-      {error ? <p className="text-red-600">{error}</p> : null}
-      {success ? <p className="text-green-600">{success}</p> : null}
-      <label className="mt-4 block">Status
-        <select className="ml-2 rounded border p-1" disabled={!canEdit} value={row?.status ?? ''} onChange={(event) => save({ status: event.target.value })}>
-          {statuses.map((status) => <option key={status}>{status}</option>)}
-        </select>
-      </label>
-      <label className="mt-2 block">Service manager
-        <select className="ml-2 rounded border p-1" disabled={!canAssignManager} value={row?.assigned_service_manager ?? ''} onChange={(event) => save({ assigned_service_manager: event.target.value })}>
-          <option value="">Unassigned</option>
-          {query.data?.managers.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
-        </select>
-      </label>
-      {canAssignTech ? <AssignForm technicians={query.data?.technicians ?? []} supervisors={query.data?.supervisors ?? []} onAssign={assignTech} /> : null}
-      <h2 className="mt-4 font-semibold">Timeline</h2>
-      {(row?.history ?? []).length === 0 ? <p>No status changes yet.</p> : (row?.history ?? []).map((item: { status: string; note: string | null; created_at: string }, index: number) => <p key={index}>{item.created_at} · {item.status} · {item.note}</p>)}
-      <h2 className="mt-4 font-semibold">Attachments</h2>
-      {files.length === 0 ? <p>No attachments.</p> : files.map((file) => <p key={file.storage_path}>{file.url ? <a className="text-[#0B4F6C]" href={file.url} target="_blank" rel="noreferrer">{file.file_name}</a> : file.file_name}</p>)}
-      <h2 className="mt-4 font-semibold">Quotations</h2>
-      {(row?.quotations ?? []).length === 0 ? <p>No quotations yet.</p> : null}
-      {(row?.quotations ?? []).map((quote: { id: string; code: string; status: string; total: number; currency: string }) => (
-        <p key={quote.id}>{quote.code} {quote.status} {quote.total} {quote.currency} {canInvoice && quote.status === 'accepted' ? <button className="ml-2 underline" onClick={() => issue(quote.id)}>Issue invoice</button> : null}</p>
-      ))}
-      {canQuote ? (
-        <div className="mt-3 space-y-2 rounded border p-3">
-          {lines.map((line, index) => (
-            <div key={index} className="grid gap-2 md:grid-cols-4">
-              <select className="rounded border p-1" value={line.inventory_item_id ?? ''} onChange={(event) => {
-                const item = query.data?.catalog.find((part) => part.id === event.target.value);
-                const next = [...lines];
-                next[index] = { ...line, inventory_item_id: event.target.value || null, description: item?.name ?? line.description, unit_price: Number(item?.unit_price ?? line.unit_price) };
-                setLines(next);
-              }}>
-                <option value="">Custom line</option>
-                {query.data?.catalog.map((part) => <option key={part.id} value={part.id}>{part.name}</option>)}
-              </select>
-              <input className="rounded border p-1" value={line.description} onChange={(event) => updateLine(lines, setLines, index, { description: event.target.value })} />
-              <input className="rounded border p-1" type="number" value={line.quantity} onChange={(event) => updateLine(lines, setLines, index, { quantity: Number(event.target.value) })} />
-              <input className="rounded border p-1" type="number" value={line.unit_price} onChange={(event) => updateLine(lines, setLines, index, { unit_price: Number(event.target.value) })} />
+    <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!row} emptyLabel="Request not found.">
+      {row ? (
+        <Page title={`${row.code ?? 'Request'} · ${row.title}`} description={row.description || 'No description yet.'} actions={<Link className={`text-sm ${linkClass}`} to="/service-requests">All requests</Link>}>
+          <Notice tone="error">{error}</Notice>
+          <Notice tone="success">{success}</Notice>
+          <Card title="Assignment">
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Status">
+                <select className={inputClass} disabled={!canEdit} value={row.status ?? ''} onChange={(event) => changeStatus(event.target.value)}>
+                  {statuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+                </select>
+              </Field>
+              <Field label="Service manager">
+                <select className={inputClass} disabled={!canAssignManager} value={row.assigned_service_manager ?? ''} onChange={(event) => save({ assigned_service_manager: event.target.value })}>
+                  <option value="">Unassigned</option>
+                  {query.data?.managers.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
+                </select>
+              </Field>
             </div>
-          ))}
-          <button type="button" onClick={() => setLines([...lines, { description: '', quantity: 1, unit_price: 0, inventory_item_id: null }])}>Add line</button>
-          <div className="flex gap-2">
-            <button className="rounded border px-3 py-1" onClick={() => saveQuote(false)}>Save draft</button>
-            {canSendQuote ? <button className="rounded bg-[#0B4F6C] px-3 py-1 text-white" onClick={() => saveQuote(true)}>Send quotation</button> : null}
+            {canAssignTech ? <AssignForm technicians={query.data?.technicians ?? []} supervisors={query.data?.supervisors ?? []} onAssign={assignTech} /> : null}
+          </Card>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <Card title="Timeline">
+              {(row.history ?? []).length === 0 ? <p className="text-sm text-slate-500">No status changes yet.</p> : (
+                <ul className="space-y-2 text-sm">
+                  {(row.history ?? []).map((item: { status: string; note: string | null; created_at: string }, index: number) => (
+                    <li key={index} className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={item.status} />
+                      <span className="text-slate-500">{formatWhen(item.created_at)}</span>
+                      {item.note ? <span>{item.note}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+            <Card title="Attachments">
+              {files.length === 0 ? <p className="text-sm text-slate-500">No attachments.</p> : (
+                <ul className="space-y-1 text-sm">
+                  {files.map((file) => <li key={file.storage_path}>{file.url ? <a className={linkClass} href={file.url} target="_blank" rel="noreferrer">{file.file_name}</a> : file.file_name}</li>)}
+                </ul>
+              )}
+            </Card>
           </div>
-        </div>
-      ) : null}
-      <h2 className="mt-4 font-semibold">Invoices</h2>
-      {(row?.invoices ?? []).length === 0 ? <p>No invoices yet.</p> : (row?.invoices ?? []).map((invoice: { id: string; code: string; status: string; balance: number }) => <p key={invoice.id}>{invoice.code} {invoice.status} balance {invoice.balance}</p>)}
-      {canViewMessages ? (
-        <>
-          <h2 className="mt-4 font-semibold">Messages</h2>
-          {query.data?.messages.length === 0 ? <p>No messages yet.</p> : query.data?.messages.map((item) => <p key={item.id}>{item.created_at} · {item.body}</p>)}
-        </>
-      ) : null}
-      {canMessage ? (
-        <>
-          <textarea className="mt-2 w-full rounded border p-2" value={message} onChange={(event) => setMessage(event.target.value)} />
-          <button className="mt-2 rounded bg-[#0B4F6C] px-3 py-1 text-white" onClick={sendMessage}>Send</button>
-        </>
+          <Card title="Quotations">
+            {(row.quotations ?? []).length === 0 ? <p className="text-sm text-slate-500">No quotations yet.</p> : (
+              <ul className="space-y-2 text-sm">
+                {(row.quotations ?? []).map((quote: { id: string; code: string; status: string; total: number; currency: string }) => (
+                  <li key={quote.id} className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{quote.code}</span>
+                    <StatusBadge status={quote.status} />
+                    <span>{formatMoney(quote.total, quote.currency)}</span>
+                    {canInvoice && quote.status === 'accepted' ? <Button variant="secondary" onClick={() => issue(quote.id)}>Issue invoice</Button> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canQuote ? (
+              <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+                {lines.map((line, index) => (
+                  <div key={index} className="grid gap-2 md:grid-cols-4">
+                    <select aria-label="Inventory item" className={inputClass} value={line.inventory_item_id ?? ''} onChange={(event) => {
+                      const item = query.data?.catalog.find((part) => part.id === event.target.value);
+                      const next = [...lines];
+                      next[index] = { ...line, inventory_item_id: event.target.value || null, description: item?.name ?? line.description, unit_price: Number(item?.unit_price ?? line.unit_price) };
+                      setLines(next);
+                    }}>
+                      <option value="">Custom line</option>
+                      {query.data?.catalog.map((part) => <option key={part.id} value={part.id}>{part.name}</option>)}
+                    </select>
+                    <input aria-label="Description" className={inputClass} value={line.description} onChange={(event) => updateLine(lines, setLines, index, { description: event.target.value })} />
+                    <input aria-label="Quantity" className={inputClass} type="number" value={line.quantity} onChange={(event) => updateLine(lines, setLines, index, { quantity: Number(event.target.value) })} />
+                    <input aria-label="Unit price" className={inputClass} type="number" value={line.unit_price} onChange={(event) => updateLine(lines, setLines, index, { unit_price: Number(event.target.value) })} />
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => setLines([...lines, { description: '', quantity: 1, unit_price: 0, inventory_item_id: null }])}>Add line</Button>
+                  <Button variant="secondary" onClick={() => saveQuote(false)}>Save draft</Button>
+                  {canSendQuote ? <Button onClick={() => saveQuote(true)}>Send quotation</Button> : null}
+                </div>
+              </div>
+            ) : null}
+          </Card>
+          <Card title="Invoices">
+            {(row.invoices ?? []).length === 0 ? <p className="text-sm text-slate-500">No invoices yet.</p> : (
+              <ul className="space-y-2 text-sm">
+                {(row.invoices ?? []).map((invoice: { id: string; code: string; status: string; balance: number }) => (
+                  <li key={invoice.id} className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{invoice.code}</span>
+                    <StatusBadge status={invoice.status} />
+                    <span>Balance {formatMoney(invoice.balance)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          {canViewMessages ? (
+            <Card title="Messages">
+              {query.data?.messages.length === 0 ? <p className="text-sm text-slate-500">No messages yet.</p> : (
+                <ul className="space-y-2 text-sm">
+                  {query.data?.messages.map((item) => <li key={item.id}><span className="text-slate-500">{formatWhen(item.created_at)}</span> · {item.body}</li>)}
+                </ul>
+              )}
+              {canMessage ? (
+                <div className="mt-3 space-y-2">
+                  <Field label="Message">
+                    <textarea className={inputClass} rows={3} value={message} onChange={(event) => setMessage(event.target.value)} />
+                  </Field>
+                  <Button onClick={sendMessage}>Send</Button>
+                </div>
+              ) : null}
+            </Card>
+          ) : null}
+        </Page>
       ) : null}
     </DataState>
   );
@@ -199,20 +262,20 @@ function AssignForm({ technicians, supervisors, onAssign }: { technicians: { id:
   const [technicianId, setTechnicianId] = useState('');
   const [supervisorId, setSupervisorId] = useState('');
   return (
-    <div className="mt-2 flex flex-wrap items-end gap-2">
-      <label>Technician
-        <select className="ml-2 rounded border p-1" value={technicianId} onChange={(event) => setTechnicianId(event.target.value)}>
+    <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 md:grid-cols-3 dark:border-slate-800">
+      <Field label="Technician">
+        <select className={inputClass} value={technicianId} onChange={(event) => setTechnicianId(event.target.value)}>
           <option value="">Choose</option>
           {technicians.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
         </select>
-      </label>
-      <label>Supervisor
-        <select className="ml-2 rounded border p-1" value={supervisorId} onChange={(event) => setSupervisorId(event.target.value)}>
+      </Field>
+      <Field label="Supervisor">
+        <select className={inputClass} value={supervisorId} onChange={(event) => setSupervisorId(event.target.value)}>
           <option value="">None</option>
           {supervisors.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
         </select>
-      </label>
-      <button className="rounded border px-3 py-1" onClick={() => technicianId && onAssign(technicianId, supervisorId)}>Assign</button>
+      </Field>
+      <div className="flex items-end"><Button variant="secondary" onClick={() => technicianId && onAssign(technicianId, supervisorId)}>Assign technician</Button></div>
     </div>
   );
 }

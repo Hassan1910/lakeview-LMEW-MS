@@ -1,12 +1,15 @@
 <template>
-  <section>
-    <h1 class="mb-4 text-xl font-semibold">Inventory report</h1>
-    <p v-if="query.isLoading.value">Loading…</p>
-    <p v-else-if="query.isError.value" class="text-red-600">{{ (query.error.value as Error).message }}</p>
-    <p v-else-if="!(query.data.value ?? []).length">No stock to chart.</p>
-    <Bar v-else :data="chart" :options="{ responsive: true, plugins: { legend: { display: false } } }" />
-    <Button class="mt-4" label="Export CSV" @click="csv" />
-  </section>
+  <PageHeader title="Inventory report" description="On-hand quantities. Bars in amber are at or below reorder.">
+    <template #actions><AppButton variant="secondary" @click="csv">Export CSV</AppButton></template>
+  </PageHeader>
+  <SkeletonRows v-if="query.isLoading.value" />
+  <AppNotice v-else-if="query.isError.value" tone="error" :message="(query.error.value as Error).message" />
+  <EmptyState v-else-if="!(query.data.value ?? []).length" title="No stock to chart." />
+  <AppCard v-else title="Quantity on hand">
+    <div class="h-80">
+      <Bar :data="chart" :options="{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }" />
+    </div>
+  </AppCard>
 </template>
 
 <script setup lang="ts">
@@ -15,6 +18,12 @@ import { Bar } from 'vue-chartjs';
 import { BarElement, CategoryScale, Chart as ChartJS, LinearScale, Tooltip } from 'chart.js';
 import { useQuery } from '@tanstack/vue-query';
 import { db } from '../lib/supabase';
+import PageHeader from '../components/PageHeader.vue';
+import AppButton from '../components/AppButton.vue';
+import AppCard from '../components/AppCard.vue';
+import AppNotice from '../components/AppNotice.vue';
+import SkeletonRows from '../components/SkeletonRows.vue';
+import EmptyState from '../components/EmptyState.vue';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
@@ -27,10 +36,16 @@ const query = useQuery({
   },
 });
 
-const chart = computed(() => ({
-  labels: (query.data.value ?? []).map((row) => row.name),
-  datasets: [{ data: (query.data.value ?? []).map((row) => Number(row.quantity_on_hand)), backgroundColor: '#0B4F6C' }],
-}));
+const chart = computed(() => {
+  const rows = (query.data.value ?? []).slice(0, 24);
+  return {
+    labels: rows.map((row) => row.name),
+    datasets: [{
+      data: rows.map((row) => Number(row.quantity_on_hand)),
+      backgroundColor: rows.map((row) => Number(row.quantity_on_hand) <= Number(row.reorder_level) ? '#D97706' : '#0B4F6C'),
+    }],
+  };
+});
 
 function csv() {
   const lines = ['name,quantity_on_hand,reorder_level', ...(query.data.value ?? []).map((row) => `${row.name},${row.quantity_on_hand},${row.reorder_level}`)];

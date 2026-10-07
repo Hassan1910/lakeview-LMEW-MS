@@ -5,6 +5,7 @@ import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
 import { AccountInfo, manageUsers } from '../lib/manageUsers';
+import { useConfirm } from '../components/confirm';
 import { Badge, Button, Card, Field, Notice, Page, Table, errorMessage, inputClass } from '../components/ui';
 
 type Message = { tone: 'error' | 'success'; text: string } | null;
@@ -14,6 +15,7 @@ const blankCreate = { full_name: '', email: '', phone: '', role_id: '', method: 
 
 export const Users: React.FC = () => {
   const { can, profile } = useAuth();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const manage = can('users.manage');
   const actorIsAdmin = profile?.role === 'administrator';
@@ -76,7 +78,8 @@ export const Users: React.FC = () => {
   const changeRole = async (user: UserRow, roleId: string) => {
     const next = roleById.get(roleId);
     if (!next || roleId === user.role_id) return;
-    if (!window.confirm(`Change ${user.full_name} from ${roleById.get(user.role_id)?.name ?? user.role} to ${next.name}?`)) return;
+    const ok = await confirm({ title: 'Change role', description: `Change ${user.full_name} from ${roleById.get(user.role_id)?.name ?? user.role} to ${next.name}?`, confirmLabel: 'Change role', tone: 'primary' });
+    if (!ok) return;
     setBusy(user.id);
     setMessage(null);
     const { data, error } = await db().from('profiles').update({ role_id: roleId }).eq('id', user.id).select('id');
@@ -88,8 +91,8 @@ export const Users: React.FC = () => {
   };
 
   const act = async (user: UserRow, action: 'suspend' | 'restore' | 'remove' | 'reset-password', done: string) => {
-    if (action === 'remove' && !window.confirm(`Permanently remove ${user.full_name}'s account? This cannot be undone.`)) return;
-    if (action === 'suspend' && !window.confirm(`Suspend ${user.full_name}? They will be signed out and blocked from signing in.`)) return;
+    if (action === 'remove' && !await confirm({ title: 'Remove account', description: `Permanently remove ${user.full_name}'s account? This cannot be undone.`, confirmLabel: 'Remove account' })) return;
+    if (action === 'suspend' && !await confirm({ title: 'Suspend account', description: `Suspend ${user.full_name}? They will be signed out and blocked from signing in.`, confirmLabel: 'Suspend' })) return;
     setBusy(user.id);
     setMessage(null);
     const { error } = await manageUsers(action, { user_id: user.id, redirect_to: `${window.location.origin}/login` });

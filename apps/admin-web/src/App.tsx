@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
+import { ConfirmProvider } from './components/confirm';
 import { canAccess, homePath } from './auth/access';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { LoginPage } from './pages/Login';
@@ -53,6 +54,7 @@ export const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrowserRouter>
+        <ConfirmProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<Guard />}>
@@ -92,6 +94,7 @@ export const App: React.FC = () => (
           </Route>
           <Route path="*" element={<HomeRedirect />} />
         </Routes>
+        </ConfirmProvider>
       </BrowserRouter>
     </AuthProvider>
   </QueryClientProvider>

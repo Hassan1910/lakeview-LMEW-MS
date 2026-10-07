@@ -4,10 +4,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
-import { Badge, Button, Notice, Page, Table, errorMessage, statusTone } from '../components/ui';
+import { useConfirm } from '../components/confirm';
+import { Button, Notice, Page, StatusBadge, Table, errorMessage } from '../components/ui';
 
 export const MyOrders: React.FC = () => {
   const { profile, can } = useAuth();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +32,13 @@ export const MyOrders: React.FC = () => {
   });
 
   const setStatus = async (id: string, status: string) => {
+    const ok = await confirm({
+      title: status === 'shipped' ? 'Mark shipped' : 'Acknowledge order',
+      description: status === 'shipped' ? 'Tell Lakeview Marine this order has shipped?' : 'Acknowledge that you received this purchase order?',
+      confirmLabel: status === 'shipped' ? 'Mark shipped' : 'Acknowledge',
+      tone: 'primary',
+    });
+    if (!ok) return;
     setError(null);
     const { error: updateError } = await db().from('purchase_orders').update({ status }).eq('id', id);
     if (updateError) setError(updateError.message);
@@ -52,7 +61,7 @@ export const MyOrders: React.FC = () => {
           {orders.map((order) => (
             <tr key={order.id}>
               <td className="px-3 py-2"><Link className="font-medium text-[#0B4F6C] hover:underline dark:text-sky-300" to={`/my-orders/${order.id}`}>{order.code}</Link></td>
-              <td className="px-3 py-2"><Badge tone={statusTone(order.status)}>{order.status}</Badge></td>
+              <td className="px-3 py-2"><StatusBadge status={order.status} /></td>
               <td className="px-3 py-2">{order.currency ?? 'KES'} {Number(order.total ?? 0).toLocaleString()}</td>
               <td className="px-3 py-2">{order.expected_date ?? '—'}</td>
               <td className="px-3 py-2 text-right">
