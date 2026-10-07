@@ -2,6 +2,9 @@
 node_modules
 .pnpm-store
 
+# Vercel
+.vercel
+
 # Build outputs
 dist
 build
