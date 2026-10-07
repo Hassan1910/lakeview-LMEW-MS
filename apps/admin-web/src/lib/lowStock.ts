@@ -9,9 +9,9 @@ export function useLowStockCount(enabled: boolean) {
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await db().from('inventory_items').select('quantity_on_hand, reorder_level').eq('is_active', true);
+      const { data, error } = await db().rpc('low_stock_count');
       if (error) throw error;
-      return (data ?? []).filter((item) => Number(item.quantity_on_hand) <= Number(item.reorder_level)).length;
+      return Number(data ?? 0);
     },
   });
 }

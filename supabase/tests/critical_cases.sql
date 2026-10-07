@@ -1,7 +1,7 @@
 -- pgTAP checks for the seven critical schema, payment, and RLS cases.
 -- Run with: supabase test db
 BEGIN;
-SELECT plan(18);
+SELECT plan(27);
 
 SELECT ok(
   EXISTS (
@@ -102,6 +102,63 @@ SELECT ok(
 SELECT ok(
   EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_audit_role_permissions'),
   'permission changes are audited'
+);
+
+SELECT ok(
+  (SELECT confdeltype FROM pg_constraint WHERE conname = 'service_requests_vessel_id_fkey') = 'r',
+  'deleting a vessel cannot cascade into service requests'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM public.role_permissions rp
+    JOIN public.roles r ON r.id = rp.role_id
+    WHERE r.key = 'technician'
+      AND rp.permission_key IN ('vessels.create', 'vessels.edit', 'vessels.delete')
+  ),
+  'technicians cannot create, edit, or delete vessels'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_guard_payment_capacity'),
+  'pending payments are reserved against the invoice total'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'receive_purchase_order'),
+  'purchase orders are received in one function'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'invoice_items'),
+  'issued invoices keep their own lines'
+);
+
+SELECT ok(
+  NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'wop_technician_insert')
+  AND EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'wop_assignee_insert'),
+  'technicians issue parts only on assigned jobs'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM public.role_permissions rp
+    JOIN public.roles r ON r.id = rp.role_id
+    WHERE r.key = 'technician' AND rp.permission_key = 'work_orders.execute'
+  ),
+  'technicians hold the execute permission for assigned jobs'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_guard_service_request_status'),
+  'service requests follow a status sequence'
+);
+
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'low_stock_count'),
+  'low stock is counted in the database'
 );
 
 SELECT * FROM finish();

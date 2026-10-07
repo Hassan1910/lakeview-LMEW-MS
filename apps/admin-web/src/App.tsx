@@ -15,7 +15,10 @@ import { Quotations } from './pages/Quotations';
 import { Invoices } from './pages/Invoices';
 import { Payments } from './pages/Payments';
 import { Customers } from './pages/Customers';
+import { CustomerDetail } from './pages/CustomerDetail';
 import { Vessels } from './pages/Vessels';
+import { VesselDetail } from './pages/VesselDetail';
+import { InvoiceDetail } from './pages/InvoiceDetail';
 import { Users } from './pages/Users';
 import { Roles } from './pages/Roles';
 import { Reports } from './pages/Reports';
@@ -72,9 +75,12 @@ export const App: React.FC = () => (
             <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
             <Route path="/quotations" element={<Quotations />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route path="/vessels" element={<Vessels />} />
+            <Route path="/vessels/:id" element={<VesselDetail />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/invoices" element={<Invoices />} />
+            <Route path="/invoices/:id" element={<InvoiceDetail />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/inventory" element={<Inventory />} />

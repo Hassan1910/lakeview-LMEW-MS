@@ -8,7 +8,8 @@ import { useClientPage } from '../components/useClientPage';
 import { Button, Notice, Page, Pagination, SearchField, inputClass } from '../components/ui';
 
 export const Feedback: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, can } = useAuth();
+  const canReply = can('feedback.edit');
   const queryClient = useQueryClient();
   const [response, setResponse] = useState<Record<string, string>>({});
   const [term, setTerm] = useState('');
@@ -49,13 +50,13 @@ export const Feedback: React.FC = () => {
               <p className="text-sm font-medium">{row.rating}/5 · {statusLabel(row.category)}</p>
               <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">{row.comment}</p>
               <p className="mt-2 text-sm text-slate-500">Response: {row.response || 'None yet'}</p>
-              <div className="mt-3 flex flex-wrap items-end gap-2">
+              {canReply ? <div className="mt-3 flex flex-wrap items-end gap-2">
                 <label className="min-w-[16rem] flex-1 text-sm">
                   <span className="mb-1 block font-medium">Reply</span>
                   <input className={inputClass} value={response[row.id] ?? ''} onChange={(event) => setResponse({ ...response, [row.id]: event.target.value })} />
                 </label>
                 <Button disabled={busy === row.id} onClick={() => reply(row.id)}>{busy === row.id ? 'Saving…' : 'Save response'}</Button>
-              </div>
+              </div> : null}
             </li>
           ))}
         </ul>

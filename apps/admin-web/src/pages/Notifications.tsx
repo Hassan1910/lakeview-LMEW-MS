@@ -11,6 +11,7 @@ export const Notifications: React.FC = () => {
   const queryClient = useQueryClient();
   const [term, setTerm] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const [markError, setMarkError] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ['admin-notes', profile?.id],
     enabled: Boolean(profile?.id),
@@ -29,7 +30,8 @@ export const Notifications: React.FC = () => {
   }, [profile, queryClient]);
   const mark = async (id: string) => {
     const { error } = await db().from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id);
-    setMessage(error?.message ?? 'Marked as read.');
+    setMarkError(error?.message ?? null);
+    setMessage(error ? null : 'Marked as read.');
     queryClient.invalidateQueries({ queryKey: ['admin-notes'] });
     queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
   };
@@ -39,6 +41,7 @@ export const Notifications: React.FC = () => {
   return (
     <Page title="Notifications" description="Updates sent to your account.">
       <SearchField value={term} onChange={(value) => { setTerm(value); page.setPage(1); }} placeholder="Search notifications" />
+      <Notice tone="error">{markError}</Notice>
       <Notice tone="success">{message}</Notice>
       <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term ? 'No notifications match that search.' : 'No notifications yet.'}>
         <ul className="space-y-2">

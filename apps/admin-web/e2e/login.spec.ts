@@ -41,6 +41,14 @@ test.describe('permission-driven navigation', () => {
     await expect(page).not.toHaveURL(/\/users$/);
   });
 
+  test('settings does not publish the demo password', async ({ page }) => {
+    await signIn(page, 'kevin@lakeviewmarine.co.ke');
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    await expect(page.getByText('LmewDemo123')).toHaveCount(0);
+    await expect(page.getByText(/Paystack/)).toBeVisible();
+  });
+
   test('supplier only sees their purchase orders', async ({ page }) => {
     await signIn(page, 'supplier@kenyamarine.co.ke');
     await expect(page).toHaveURL(/\/my-orders$/);

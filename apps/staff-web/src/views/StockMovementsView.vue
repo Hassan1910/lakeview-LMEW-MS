@@ -8,7 +8,7 @@
           <option v-for="item in catalog" :key="item.id" :value="item.id">{{ item.name }} ({{ item.sku }})</option>
         </select>
       </AppField>
-      <AppField label="Type" required>
+      <AppField label="Type" required hint="Adjustment and return increase stock. Use Out to reduce it.">
         <select v-model="type" class="field-input">
           <option v-for="option in types" :key="option" :value="option">{{ statusLabel(option) }}</option>
         </select>

@@ -97,21 +97,7 @@ export const PurchaseOrderDetail: React.FC = () => {
   }, `Order marked ${status}.`);
 
   const receive = () => run(async () => {
-    const lines = ((order.data?.lines ?? []) as PoLine[]).filter((item) => item.inventory_item_id);
-    if (!lines.length) return 'Add lines linked to inventory items before receiving stock.';
-    for (const item of lines) {
-      const { error } = await db().from('stock_movements').insert({
-        inventory_item_id: item.inventory_item_id,
-        type: 'in',
-        quantity: item.quantity,
-        reason: 'Purchase order received',
-        reference: order.data?.code ?? null,
-        related_po_id: id,
-        created_by: profile?.id ?? null,
-      });
-      if (error) return error.message;
-    }
-    const { error } = await db().from('purchase_orders').update({ status: 'received' }).eq('id', id);
+    const { error } = await db().rpc('receive_purchase_order', { p_id: id });
     queryClient.invalidateQueries({ queryKey: ['inventory'] });
     queryClient.invalidateQueries({ queryKey: ['low-stock-count'] });
     return error?.message ?? null;

@@ -132,8 +132,8 @@ function isActive(path: string) {
 
 async function refreshLowStock() {
   if (!profile.value || !['store_manager', 'procurement_officer', 'administrator'].includes(profile.value.role)) return;
-  const { data } = await db().from('inventory_items').select('quantity_on_hand, reorder_level').eq('is_active', true);
-  lowCount.value = (data ?? []).filter((row) => Number(row.quantity_on_hand) <= Number(row.reorder_level)).length;
+  const { data, error } = await db().rpc('low_stock_count');
+  if (!error) lowCount.value = Number(data ?? 0);
 }
 
 let stopWatch: (() => void) | undefined;

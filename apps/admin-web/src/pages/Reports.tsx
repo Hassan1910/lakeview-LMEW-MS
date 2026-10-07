@@ -5,7 +5,7 @@ import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { formatMoney, statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';
-import { Button, Card, Notice, Page, Table, tdClass } from '../components/ui';
+import { Button, Card, Field, Notice, Page, Table, inputClass, tdClass } from '../components/ui';
 
 export const Reports: React.FC = () => {
   const { can } = useAuth();
@@ -16,38 +16,36 @@ export const Reports: React.FC = () => {
   const showFeedback = can('feedback.view');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const range = {
+    p_from: from ? new Date(from).toISOString() : null,
+    p_to: to ? new Date(`${to}T23:59:59`).toISOString() : null,
+  };
   const query = useQuery({
-    queryKey: ['reports'],
+    queryKey: ['reports', from, to, showService, showFinance, showTech, showInventory, showFeedback],
     queryFn: async () => {
-      const [requests, invoices, orders, stock, feedback] = await Promise.all([
-        db().from('service_requests').select('status'),
-        db().from('invoices').select('status, total, amount_paid'),
-        db().from('work_orders').select('status, assigned_to, technician:profiles!work_orders_assigned_to_fkey(full_name)'),
-        db().from('inventory_items').select('name, sku, quantity_on_hand, reorder_level'),
-        db().from('feedback').select('rating, category'),
+      const idle = Promise.resolve({ data: [] as never[], error: null });
+      const [service, finance, technicians, stock, feedback] = await Promise.all([
+        showService ? db().rpc('report_service_counts', range) : idle,
+        showFinance ? db().rpc('report_invoice_summary', range) : idle,
+        showTech ? db().rpc('report_technician_load') : idle,
+        showInventory ? db().rpc('report_low_stock') : idle,
+        showFeedback ? db().rpc('report_feedback_summary', range) : idle,
       ]);
-      const count = (rows: { status?: string }[] | null) => Object.entries((rows ?? []).reduce<Record<string, number>>((acc, row) => {
-        const name = String(row.status ?? 'unknown');
-        acc[name] = (acc[name] ?? 0) + 1;
-        return acc;
-      }, {})).map(([name, value]) => ({ name, label: statusLabel(name), value }));
-      const technicians = new Map<string, { name: string; completed: number; open: number }>();
-      for (const row of orders.data ?? []) {
-        const technician = Array.isArray(row.technician) ? row.technician[0] : row.technician;
-        const name = technician?.full_name ?? row.assigned_to;
-        const current = technicians.get(row.assigned_to) ?? { name, completed: 0, open: 0 };
-        if (row.status === 'completed') current.completed += 1;
-        else if (row.status !== 'cancelled') current.open += 1;
-        technicians.set(row.assigned_to, current);
-      }
+      const failed = service.error ?? finance.error ?? technicians.error ?? stock.error ?? feedback.error;
+      if (failed) throw failed;
+      const financialRows = (finance.data ?? []) as { status: string; value: number; invoiced: number; collected: number }[];
+      const feedbackRow = ((feedback.data ?? []) as { average: number; responses: number }[])[0];
       return {
-        service: count(requests.data),
-        financial: count(invoices.data),
-        collected: (invoices.data ?? []).reduce((sum, row) => sum + Number(row.amount_paid ?? 0), 0),
-        invoiced: (invoices.data ?? []).reduce((sum, row) => sum + Number(row.total ?? 0), 0),
-        technicians: [...technicians.values()],
-        inventory: (stock.data ?? []).filter((row) => Number(row.quantity_on_hand) <= Number(row.reorder_level)),
-        feedback: feedback.data ?? [],
+        service: ((service.data ?? []) as { status: string; value: number }[]).map((row) => ({ name: row.status, label: statusLabel(row.status), value: Number(row.value) })),
+        financial: financialRows.map((row) => ({ name: row.status, label: statusLabel(row.status), value: Number(row.value) })),
+        collected: financialRows.reduce((sum, row) => sum + Number(row.collected ?? 0), 0),
+        invoiced: financialRows.reduce((sum, row) => sum + Number(row.invoiced ?? 0), 0),
+        technicians: ((technicians.data ?? []) as { name: string; completed: number; open: number }[]).map((row) => ({ name: row.name, completed: Number(row.completed), open: Number(row.open) })),
+        inventory: (stock.data ?? []) as { name: string; sku: string; quantity_on_hand: number; reorder_level: number }[],
+        feedbackAverage: Number(feedbackRow?.average ?? 0),
+        feedbackCount: Number(feedbackRow?.responses ?? 0),
       };
     },
   });
@@ -61,7 +59,7 @@ export const Reports: React.FC = () => {
       ...(showFinance ? data.financial.map((row) => `financial,${row.name},${row.value}`) : []),
       ...(showTech ? data.technicians.map((row) => `technician,${row.name},${row.completed} completed / ${row.open} open`) : []),
       ...(showInventory ? data.inventory.map((row) => `inventory,${row.sku},${row.quantity_on_hand}`) : []),
-      ...(showFeedback ? [`feedback,average,${average(data.feedback)}`] : []),
+      ...(showFeedback ? [`feedback,average,${data.feedbackAverage}`] : []),
     ];
   };
 
@@ -83,8 +81,6 @@ export const Reports: React.FC = () => {
     else { setMessage('PDF ready.'); window.open(data.signed_url, '_blank'); }
   };
 
-  const avg = average(query.data?.feedback ?? []);
-
   return (
     <Page title="Reports" description="Operational totals for the modules you can report on." actions={(
       <>
@@ -94,6 +90,10 @@ export const Reports: React.FC = () => {
     )}>
       <Notice tone="error">{error}</Notice>
       <Notice tone="success">{message}</Notice>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="From"><input className={inputClass} type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></Field>
+        <Field label="To"><input className={inputClass} type="date" value={to} onChange={(event) => setTo(event.target.value)} /></Field>
+      </div>
       <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null}>
         {showService ? (
           <Card title="Service requests">
@@ -155,15 +155,10 @@ export const Reports: React.FC = () => {
         ) : null}
         {showFeedback ? (
           <Card title="Customer feedback">
-            <p className="text-sm">Average rating <span className="font-semibold">{avg.toFixed(2)} / 5</span> from {query.data?.feedback.length ?? 0} responses.</p>
+            <p className="text-sm">Average rating <span className="font-semibold">{(query.data?.feedbackAverage ?? 0).toFixed(2)} / 5</span> from {query.data?.feedbackCount ?? 0} responses.</p>
           </Card>
         ) : null}
       </DataState>
     </Page>
   );
 };
-
-function average(rows: { rating: number }[]) {
-  if (!rows.length) return 0;
-  return rows.reduce((sum, row) => sum + Number(row.rating), 0) / rows.length;
-}

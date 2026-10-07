@@ -8,7 +8,7 @@
     "institution": "Kenya Methodist University",
     "supervisor": "Mr. David Muriithi Kaje",
     "submission_date": "2025-06",
-    "document_type": "Master Specification for AI-Assisted Development",
+    "document_type": "Historical specification. Live tables, columns, and functions are supabase/migrations through 20250101000012. See docs/live-security.md.",
     "generated_for": "AI code editor / AI writer (Cursor, Windsurf, Copilot Workspace, Claude, etc.)"
   },
   "database_schema": {
