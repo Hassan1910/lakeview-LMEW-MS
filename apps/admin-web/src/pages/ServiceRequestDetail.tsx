@@ -8,7 +8,18 @@ import { useConfirm } from '../components/confirm';
 import { DataState } from '../components/DataState';
 import { Button, Card, Field, Notice, Page, StatusBadge, inputClass, linkClass } from '../components/ui';
 
-const statuses = ['request_received', 'inspection_in_progress', 'quotation_pending', 'quotation_sent', 'awaiting_approval', 'awaiting_spare_parts', 'under_repair', 'testing', 'completed', 'cancelled'];
+const nextStatus: Record<string, string[]> = {
+  request_received: ['inspection_in_progress', 'cancelled'],
+  inspection_in_progress: ['quotation_pending', 'awaiting_spare_parts', 'cancelled'],
+  quotation_pending: ['quotation_sent', 'awaiting_approval', 'cancelled'],
+  quotation_sent: ['awaiting_approval', 'cancelled'],
+  awaiting_approval: ['under_repair', 'awaiting_spare_parts', 'cancelled'],
+  awaiting_spare_parts: ['under_repair', 'cancelled'],
+  under_repair: ['testing', 'awaiting_spare_parts', 'completed', 'cancelled'],
+  testing: ['under_repair', 'completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+};
 
 type Line = { description: string; quantity: number; unit_price: number; inventory_item_id: string | null };
 type Attachment = { file_name: string; storage_path: string; url?: string };
@@ -38,12 +49,14 @@ export const ServiceRequestDetail: React.FC = () => {
       const request = await db().from('service_requests').select('*, history:service_request_status_history(status, note, created_at), attachments:service_request_attachments(file_name, storage_path), quotations(id, code, status, total, currency), invoices(id, code, status, balance)').eq('id', id).single();
       if (request.error) throw request.error;
       const [managers, technicians, thread, catalog, supervisors] = await Promise.all([
-        db().from('profiles').select('id, full_name').eq('role', 'service_manager'),
-        db().from('profiles').select('id, full_name').eq('role', 'technician'),
+        db().rpc('assignable_profiles', { p_permission: 'service_requests.assign' }),
+        db().rpc('assignable_profiles', { p_permission: 'work_orders.execute' }),
         db().from('messages').select('id, body, created_at').eq('service_request_id', id).order('created_at'),
         db().from('inventory_items').select('id, name, unit_price').eq('is_active', true).order('name'),
-        db().from('profiles').select('id, full_name').eq('role', 'supervisor'),
+        db().rpc('assignable_profiles', { p_permission: 'work_orders.assign' }),
       ]);
+      const failed = managers.error ?? technicians.error ?? thread.error ?? catalog.error ?? supervisors.error;
+      if (failed) throw failed;
       return {
         request: request.data,
         managers: managers.data ?? [],
@@ -143,13 +156,13 @@ export const ServiceRequestDetail: React.FC = () => {
             <div className="grid gap-3 md:grid-cols-2">
               <Field label="Status">
                 <select className={inputClass} disabled={!canEdit} value={row.status ?? ''} onChange={(event) => changeStatus(event.target.value)}>
-                  {statuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+                  {[row.status, ...(nextStatus[row.status] ?? [])].filter((status, index, all) => status && all.indexOf(status) === index).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                 </select>
               </Field>
               <Field label="Service manager">
                 <select className={inputClass} disabled={!canAssignManager} value={row.assigned_service_manager ?? ''} onChange={(event) => save({ assigned_service_manager: event.target.value })}>
                   <option value="">Unassigned</option>
-                  {query.data?.managers.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
+                  {(query.data?.managers ?? []).map((person: { id: string; full_name: string | null }) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
                 </select>
               </Field>
             </div>
@@ -221,7 +234,7 @@ export const ServiceRequestDetail: React.FC = () => {
               <ul className="space-y-2 text-sm">
                 {(row.invoices ?? []).map((invoice: { id: string; code: string; status: string; balance: number }) => (
                   <li key={invoice.id} className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{invoice.code}</span>
+                    <Link className={`font-medium ${linkClass}`} to={`/invoices/${invoice.id}`}>{invoice.code}</Link>
                     <StatusBadge status={invoice.status} />
                     <span>Balance {formatMoney(invoice.balance)}</span>
                   </li>

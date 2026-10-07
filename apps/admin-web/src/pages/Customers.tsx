@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
-import { Page, Pagination, SearchField, Table, tdClass } from '../components/ui';
+import { Page, Pagination, SearchField, Table, linkClass, tdClass } from '../components/ui';
 
 export const Customers: React.FC = () => {
   const [term, setTerm] = useState('');
@@ -31,7 +32,7 @@ export const Customers: React.FC = () => {
             const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
             return (
               <tr key={row.id}>
-                <td className={`${tdClass} font-medium text-slate-900 dark:text-slate-50`}>{row.company_name ?? profile?.full_name ?? 'Unnamed customer'}</td>
+                <td className={`${tdClass} font-medium`}><Link className={linkClass} to={`/customers/${row.id}`}>{row.company_name ?? profile?.full_name ?? 'Unnamed customer'}</Link></td>
                 <td className={tdClass}>{row.kra_pin || '—'}</td>
                 <td className={`${tdClass} hidden md:table-cell`}>{profile?.phone || '—'}</td>
               </tr>

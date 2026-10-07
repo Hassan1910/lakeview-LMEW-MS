@@ -61,22 +61,23 @@ const isStore = computed(() => !!role.value && ['store_manager', 'procurement_of
 const isReception = computed(() => !!role.value && ['receptionist', 'administrator'].includes(role.value));
 const isSupplier = computed(() => role.value === 'supplier');
 
-const stock = useQuery({
-  queryKey: ['staff-home-stock'],
+const metrics = useQuery({
+  queryKey: ['staff-home-metrics'],
   enabled: isStore,
   queryFn: async () => {
-    const { data, error } = await db().from('inventory_items').select('quantity_on_hand, reorder_level').eq('is_active', true);
+    const { data, error } = await db().rpc('dashboard_metrics');
     if (error) throw error;
-    return (data ?? []).filter((row) => Number(row.quantity_on_hand) <= Number(row.reorder_level)).length;
+    const row = (data ?? {}) as { low_stock?: number; open_orders?: number };
+    return { low: Number(row.low_stock ?? 0), openOrders: Number(row.open_orders ?? 0) };
   },
 });
 const orders = useQuery({
   queryKey: ['staff-home-orders'],
   enabled: isStore,
   queryFn: async () => {
-    const { data, error } = await db().from('purchase_orders').select('id, code, status').order('created_at', { ascending: false });
+    const { data, error } = await db().from('purchase_orders').select('id, code, status').not('status', 'in', '(received,cancelled)').order('created_at', { ascending: false }).limit(5);
     if (error) throw error;
-    return (data ?? []).filter((row) => !['received', 'cancelled'].includes(row.status));
+    return data ?? [];
   },
 });
 const appointments = useQuery({
@@ -105,9 +106,9 @@ const mine = useQuery({
   },
 });
 
-const loading = computed(() => stock.isLoading.value || orders.isLoading.value || appointments.isLoading.value || mine.isLoading.value);
+const loading = computed(() => metrics.isLoading.value || orders.isLoading.value || appointments.isLoading.value || mine.isLoading.value);
 const error = computed(() => {
-  const failed = stock.error.value ?? orders.error.value ?? appointments.error.value ?? mine.error.value;
+  const failed = metrics.error.value ?? orders.error.value ?? appointments.error.value ?? mine.error.value;
   return failed instanceof Error ? failed.message : null;
 });
 const openOrders = computed(() => (orders.data.value ?? []).slice(0, 5));
@@ -116,8 +117,8 @@ const supplierOrders = computed(() => (mine.data.value ?? []).slice(0, 5));
 const cards = computed(() => {
   const items: { label: string; value: string | number; to: string; hint?: string }[] = [];
   if (isStore.value) {
-    items.push({ label: 'Low stock', value: stock.data.value ?? 0, to: '/inventory', hint: 'At or below reorder' });
-    items.push({ label: 'Open purchase orders', value: orders.data.value?.length ?? 0, to: '/purchase-orders' });
+    items.push({ label: 'Low stock', value: metrics.data.value?.low ?? 0, to: '/inventory', hint: 'At or below reorder' });
+    items.push({ label: 'Open purchase orders', value: metrics.data.value?.openOrders ?? 0, to: '/purchase-orders' });
   }
   if (isReception.value) items.push({ label: "Today's appointments", value: today.value.length, to: '/appointments' });
   if (isSupplier.value) items.push({ label: 'Orders to action', value: mine.data.value?.length ?? 0, to: '/my-orders' });
@@ -125,8 +126,8 @@ const cards = computed(() => {
 });
 const pending = computed(() => {
   const items: { label: string; to: string }[] = [];
-  if (isStore.value && (stock.data.value ?? 0) > 0) items.push({ label: `${stock.data.value} parts at or below reorder`, to: '/inventory' });
-  if (isStore.value && (orders.data.value?.length ?? 0) > 0) items.push({ label: `${orders.data.value?.length} purchase orders still open`, to: '/purchase-orders' });
+  if (isStore.value && (metrics.data.value?.low ?? 0) > 0) items.push({ label: `${metrics.data.value?.low} parts at or below reorder`, to: '/inventory' });
+  if (isStore.value && (metrics.data.value?.openOrders ?? 0) > 0) items.push({ label: `${metrics.data.value?.openOrders} purchase orders still open`, to: '/purchase-orders' });
   if (isReception.value && today.value.length > 0) items.push({ label: `${today.value.length} appointments today`, to: '/appointments' });
   if (isSupplier.value && (mine.data.value?.length ?? 0) > 0) items.push({ label: `${mine.data.value?.length} orders waiting on you`, to: '/my-orders' });
   return items;

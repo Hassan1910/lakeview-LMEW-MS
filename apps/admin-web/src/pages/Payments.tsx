@@ -11,7 +11,9 @@ import { Button, Card, Field, Notice, Page, Pagination, SearchField, StatusBadge
 const METHODS = ['cash', 'bank_transfer', 'cheque', 'mpesa', 'card'];
 
 export const Payments: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, can } = useAuth();
+  const canRecord = can('payments.create');
+  const canApprove = can('payments.approve');
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const [form, setForm] = useState({ invoice_id: '', amount: '', method: 'cash' });
@@ -83,12 +85,12 @@ export const Payments: React.FC = () => {
 
   return (
     <Page title="Payments" description="Record cash and transfer receipts, then verify or refund them.">
-      <Card title="Record a payment">
+      {canRecord ? <Card title="Record a payment">
         <form className="grid gap-3 md:grid-cols-4" onSubmit={record}>
           <Field label="Invoice" required>
             <select className={inputClass} value={form.invoice_id} onChange={(event) => setForm({ ...form, invoice_id: event.target.value })}>
               <option value="">Choose an invoice…</option>
-              {(invoices.data ?? []).map((invoice) => (
+              {(invoices.data ?? []).filter((invoice) => Number(invoice.balance) > 0 && !['paid', 'cancelled', 'draft'].includes(invoice.status)).map((invoice) => (
                 <option key={invoice.id} value={invoice.id}>{invoice.code} · balance {formatMoney(invoice.balance, invoice.currency ?? 'KES')}</option>
               ))}
             </select>
@@ -103,7 +105,7 @@ export const Payments: React.FC = () => {
           </Field>
           <div className="flex items-end"><Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Record payment'}</Button></div>
         </form>
-      </Card>
+      </Card> : null}
       <Notice tone="error">{error}</Notice>
       <Notice tone="success">{success}</Notice>
       <SearchField value={term} onChange={(value) => { setTerm(value); page.setPage(1); }} placeholder="Search invoice, method, or reference" />
@@ -116,8 +118,8 @@ export const Payments: React.FC = () => {
               <td className={tdClass}>{formatMoney(row.amount)}</td>
               <td className={tdClass}><StatusBadge status={row.status} /></td>
               <td className={`${tdClass} text-right`}>
-                {row.status === 'pending' ? <Button onClick={() => setStatus(row.id, 'confirmed')}>Verify</Button> : null}
-                {row.status === 'confirmed' ? <Button variant="secondary" onClick={() => setStatus(row.id, 'refunded')}>Refund</Button> : null}
+                {canApprove && row.status === 'pending' ? <Button onClick={() => setStatus(row.id, 'confirmed')}>Verify</Button> : null}
+                {canApprove && row.status === 'confirmed' ? <Button variant="secondary" onClick={() => setStatus(row.id, 'refunded')}>Refund</Button> : null}
               </td>
             </tr>
           ))}

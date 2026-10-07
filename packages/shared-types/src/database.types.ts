@@ -46,6 +46,7 @@ export type PermissionAction =
   | 'print'
   | 'submit'
   | 'assign'
+  | 'execute'
   | 'manage'
   | 'view_reports'
   | 'view_own'
@@ -307,6 +308,7 @@ export interface Invoice {
   currency: string;               // default 'KES'
   subtotal: number | null;
   tax_amount: number | null;
+  discount: number;               // copied from the quotation at issue time
   total: number | null;           // was: total_amount (WRONG)
   amount_paid: number;            // default 0
   balance: number | null;        // was: balance_due (WRONG), generated: total - amount_paid
@@ -330,6 +332,19 @@ export interface Payment {
   recorded_by: string | null;
   raw_payload: Json | null;       // was: metadata (WRONG)
   proof_path: string | null;
+  allow_overpayment: boolean;
+  created_at: string;
+}
+
+/** invoice_items table — frozen copy of quotation lines at issue time */
+export interface InvoiceItem {
+  id: string;
+  invoice_id: string;
+  inventory_item_id: string | null;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
   created_at: string;
 }
 

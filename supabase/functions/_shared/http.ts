@@ -54,15 +54,9 @@ export async function requireUser(req: Request) {
 }
 
 export function requireServiceRole(req: Request) {
-  const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
-  const part = token.split(".")[1];
-  if (!part) return json({ error: "Service role required" }, 401);
-  try {
-    const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
-    if (payload.role !== "service_role") return json({ error: "Service role required" }, 403);
-  } catch {
-    return json({ error: "Invalid token" }, 401);
-  }
+  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!expected || token !== expected) return json({ error: "Service role required" }, 403);
   return null;
 }
 

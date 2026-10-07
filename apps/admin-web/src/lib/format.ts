@@ -1,3 +1,15 @@
+export function toLocalInput(value: string | null | undefined) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function sanitizeSearchTerm(value: string) {
+  return value.replace(/[%_,()*\\]/g, '').trim();
+}
+
 const SERVICE_LABELS: Record<string, string> = {
   request_received: 'Request received',
   inspection_in_progress: 'Inspection in progress',

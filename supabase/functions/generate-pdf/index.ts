@@ -81,16 +81,14 @@ serve(async (req) => {
       bucket = "quotation-pdfs";
       path = `${id}/${data.code ?? id}.pdf`;
     } else if (type === "invoice") {
-      const { data, error } = await admin.from("invoices").select("code, currency, subtotal, tax_amount, total, amount_paid, balance, status, customer_id, quotation_id").eq("id", id).single();
+      const { data, error } = await admin.from("invoices").select("code, currency, subtotal, tax_amount, discount, total, amount_paid, balance, status, customer_id").eq("id", id).single();
       if (error || !data) return json({ error: "Invoice not found" }, 404);
       const { data: customer } = await admin.from("customers").select("profile_id").eq("id", data.customer_id).single();
       const allowed = customer?.profile_id === auth.user.id || await hasPermission(admin, auth.user.id, "invoices.print");
       if (!allowed) return json({ error: "Forbidden" }, 403);
-      lines.push(`Code: ${data.code ?? id}`, `Status: ${data.status}`, `Subtotal: ${data.subtotal}`, `Tax: ${data.tax_amount}`, `Total: ${data.total} ${data.currency}`, `Paid: ${data.amount_paid}`, `Balance: ${data.balance}`, "");
-      if (data.quotation_id) {
-        const { data: items } = await admin.from("quotation_items").select("description, quantity, unit_price, line_total").eq("quotation_id", data.quotation_id);
-        for (const item of items ?? []) lines.push(`${item.description}  ${item.quantity} x ${item.unit_price} = ${item.line_total}`);
-      }
+      lines.push(`Code: ${data.code ?? id}`, `Status: ${data.status}`, `Subtotal: ${data.subtotal}`, `Tax: ${data.tax_amount}`, `Discount: ${data.discount ?? 0}`, `Total: ${data.total} ${data.currency}`, `Paid: ${data.amount_paid}`, `Balance: ${data.balance}`, "");
+      const { data: items } = await admin.from("invoice_items").select("description, quantity, unit_price, line_total").eq("invoice_id", id);
+      for (const item of items ?? []) lines.push(`${item.description}  ${item.quantity} x ${item.unit_price} = ${item.line_total}`);
       bucket = "invoice-pdfs";
       path = `${id}/${data.code ?? id}.pdf`;
     } else {

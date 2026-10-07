@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watch } from '../lib/supabase';
-import { formatWhen, statusLabel } from '../lib/format';
+import { formatWhen, sanitizeSearchTerm, statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
 import { Page, Pagination, StatusBadge, Table, inputClass, linkClass, tdClass } from '../components/ui';
@@ -28,7 +28,7 @@ export const ServiceRequests: React.FC = () => {
       if (category) request = request.eq('category', category);
       if (priority) request = request.eq('priority', priority);
       if (from) request = request.gte('created_at', from);
-      const q = params.get('q');
+      const q = sanitizeSearchTerm(params.get('q') ?? '');
       if (q) request = request.or(`title.ilike.%${q}%,code.ilike.%${q}%`);
       const { data, error } = await request;
       if (error) throw error;

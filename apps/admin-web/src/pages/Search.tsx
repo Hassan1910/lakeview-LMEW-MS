@@ -9,8 +9,8 @@ type Hit = { kind: string; id: string; title: string; subtitle: string };
 
 const hrefFor = (hit: Hit) => {
   if (hit.kind === 'service_request') return `/service-requests/${hit.id}`;
-  if (hit.kind === 'customer') return '/customers';
-  if (hit.kind === 'vessel') return '/vessels';
+  if (hit.kind === 'customer') return `/customers/${hit.id}`;
+  if (hit.kind === 'vessel') return `/vessels/${hit.id}`;
   return '/reports';
 };
 

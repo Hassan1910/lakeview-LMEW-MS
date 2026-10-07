@@ -30,48 +30,37 @@ export const Dashboard: React.FC = () => {
   const query = useQuery({
     queryKey: ['dashboard', [...Object.values(show)].join()],
     queryFn: async () => {
+      const metricsResult = await db().rpc('dashboard_metrics');
+      if (metricsResult.error) throw metricsResult.error;
+      const metrics = (metricsResult.data ?? {}) as {
+        open_requests?: number;
+        revenue_mtd?: number;
+        jobs_today?: number;
+        open_orders?: number;
+        requests_by_status?: { name: string; value: number }[];
+        revenue_trend?: { name: string; value: number }[];
+      };
       const [requests, invoices, orders, activity, purchases] = await Promise.all([
-        show.requests ? db().from('service_requests').select('id, code, title, status, created_at').order('created_at', { ascending: false }) : none,
-        show.revenue ? db().from('invoices').select('id, code, total, status, amount_paid, created_at').order('created_at', { ascending: false }) : none,
-        show.jobs ? db().from('work_orders').select('id, code, status, created_at').order('created_at', { ascending: false }) : none,
+        show.requests ? db().from('service_requests').select('id, code, title, status, created_at').order('created_at', { ascending: false }).limit(5) : none,
+        show.revenue ? db().from('invoices').select('id, code, total, status, created_at').order('created_at', { ascending: false }).limit(5) : none,
+        show.jobs ? db().from('work_orders').select('id, code, status, created_at').order('created_at', { ascending: false }).limit(5) : none,
         show.activity ? db().from('audit_logs').select('id, action, entity, actor_email, created_at').order('created_at', { ascending: false }).limit(8) : none,
-        show.orders ? db().from('purchase_orders').select('id, code, status').order('created_at', { ascending: false }) : none,
+        show.orders ? db().from('purchase_orders').select('id, code, status').not('status', 'in', '(received,cancelled)').order('created_at', { ascending: false }).limit(5) : none,
       ]);
       const failed = requests.error ?? invoices.error ?? orders.error ?? activity.error ?? purchases.error;
       if (failed) throw failed;
-      const requestRows = (requests.data ?? []) as RequestRow[];
-      const open = requestRows.filter((row) => !['completed', 'cancelled'].includes(row.status)).length;
-      const month = new Date().toISOString().slice(0, 7);
-      const paid = (invoices.data ?? []) as InvoiceRow[];
-      const revenue = paid.filter((row) => row.status === 'paid' && row.created_at?.startsWith(month)).reduce((sum, row) => sum + Number(row.total ?? 0), 0);
-      const today = new Date().toISOString().slice(0, 10);
-      const jobRows = (orders.data ?? []) as { id: string; code: string | null; status: string; created_at: string }[];
-      const jobsToday = jobRows.filter((row) => row.created_at?.startsWith(today)).length;
-      const purchaseRows = (purchases.data ?? []) as { id: string; code: string | null; status: string }[];
-      const openOrders = purchaseRows.filter((row) => !['received', 'cancelled'].includes(row.status)).length;
-      const byStatus = Object.entries(requestRows.reduce<Record<string, number>>((acc, row) => {
-        acc[row.status] = (acc[row.status] ?? 0) + 1;
-        return acc;
-      }, {})).map(([name, value]) => ({ name: statusLabel(name), value }));
-      const trend = Array.from({ length: 6 }, (_, index) => {
-        const date = new Date();
-        date.setMonth(date.getMonth() - (5 - index));
-        const key = date.toISOString().slice(0, 7);
-        const value = paid.filter((row) => row.status === 'paid' && row.created_at?.startsWith(key)).reduce((sum, row) => sum + Number(row.total ?? 0), 0);
-        return { name: key, value };
-      });
       return {
-        open,
-        revenue,
-        jobsToday,
-        openOrders,
-        byStatus,
-        trend,
+        open: Number(metrics.open_requests ?? 0),
+        revenue: Number(metrics.revenue_mtd ?? 0),
+        jobsToday: Number(metrics.jobs_today ?? 0),
+        openOrders: Number(metrics.open_orders ?? 0),
+        byStatus: (metrics.requests_by_status ?? []).map((row) => ({ name: statusLabel(row.name), value: Number(row.value) })),
+        trend: (metrics.revenue_trend ?? []).map((row) => ({ name: row.name, value: Number(row.value) })),
         activity: (activity.data ?? []) as ActivityRow[],
-        recentRequests: requestRows.slice(0, 5),
-        recentInvoices: paid.slice(0, 5),
-        recentJobs: jobRows.slice(0, 5),
-        recentOrders: purchaseRows.filter((row) => !['received', 'cancelled'].includes(row.status)).slice(0, 5),
+        recentRequests: (requests.data ?? []) as RequestRow[],
+        recentInvoices: (invoices.data ?? []) as InvoiceRow[],
+        recentJobs: (orders.data ?? []) as { id: string; code: string | null; status: string; created_at: string }[],
+        recentOrders: (purchases.data ?? []) as { id: string; code: string | null; status: string }[],
       };
     },
   });
@@ -195,7 +184,7 @@ export const Dashboard: React.FC = () => {
                     <ul className="space-y-2 text-sm">
                       {data?.recentInvoices.map((row) => (
                         <li key={row.id} className="flex items-center justify-between gap-3">
-                          <span>{row.code ?? 'Invoice'}</span>
+                          <Link className={linkClass} to={`/invoices/${row.id}`}>{row.code ?? 'Invoice'}</Link>
                           <span className="text-slate-500">{statusLabel(row.status)} · {formatMoney(row.total)}</span>
                         </li>
                       ))}

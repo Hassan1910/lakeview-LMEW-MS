@@ -15,7 +15,7 @@ export const Settings: React.FC = () => {
     <Page title="Settings" description="Company profile, people, and the audit trail.">
       <Card>
         <p>Signed in as {profile?.full_name} ({role?.name ?? profile?.role}).</p>
-        <p className="text-sm text-slate-500">Demo accounts use password LmewDemo123 after the local seed.</p>
+        <p className="text-sm text-slate-500">Online checkout uses Paystack. Issued invoices are due 14 days after they are created. Cash, bank, and M-Pesa receipts are recorded under Payments.</p>
         <ul className="mt-3 space-y-1">
           {links.map((link) => <li key={link.to}><Link className="text-[#0B4F6C] hover:underline dark:text-sky-300" to={link.to}>{link.label}</Link></li>)}
         </ul>

@@ -99,8 +99,10 @@ export const DashboardLayout: React.FC = () => {
   }, [collapsed]);
 
   const toggleDark = () => {
-    document.documentElement.classList.toggle('dark');
-    setDark(document.documentElement.classList.contains('dark'));
+    const next = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('lmew-theme', next ? 'dark' : 'light');
+    setDark(next);
   };
 
   if (loading) {

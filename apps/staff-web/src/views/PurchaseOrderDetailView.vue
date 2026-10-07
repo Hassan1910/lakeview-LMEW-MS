@@ -148,29 +148,13 @@ async function approve() {
 }
 
 async function receive() {
-  const lines = items.value.filter((item) => item.inventory_item_id);
-  if (!lines.length) return note('Add lines linked to inventory items before receiving stock.', false);
   const ok = await confirm({ title: 'Receive stock', description: 'Receive these lines into inventory and close the order?', confirmLabel: 'Receive stock', tone: 'primary' });
   if (!ok) return;
   busy.value = true;
-  for (const line of lines) {
-    const { error: movementError } = await db().from('stock_movements').insert({
-      inventory_item_id: line.inventory_item_id,
-      type: 'in',
-      quantity: line.quantity,
-      reason: 'Purchase order received',
-      related_po_id: route.params.id,
-      created_by: auth.profile?.id ?? null,
-    });
-    if (movementError) {
-      busy.value = false;
-      return note(movementError.message, false);
-    }
-  }
-  const { error: updateError } = await db().from('purchase_orders').update({ status: 'received' }).eq('id', route.params.id);
+  const { error: receiveError } = await db().rpc('receive_purchase_order', { p_id: route.params.id });
   busy.value = false;
-  note(updateError?.message ?? 'Stock received and order closed.', !updateError);
-  if (!updateError) {
+  note(receiveError?.message ?? 'Stock received and order closed.', !receiveError);
+  if (!receiveError) {
     status.value = 'received';
     queryClient.invalidateQueries({ queryKey: ['po', route.params.id] });
   }

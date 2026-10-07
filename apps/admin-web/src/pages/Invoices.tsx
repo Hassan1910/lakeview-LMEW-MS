@@ -1,13 +1,17 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
+import { useAuth } from '../auth/AuthProvider';
 import { formatMoney } from '../lib/format';
 import { useConfirm } from '../components/confirm';
 import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
-import { Button, Card, Notice, Page, Pagination, SearchField, StatusBadge, Table, tdClass } from '../components/ui';
+import { Button, Card, Notice, Page, Pagination, SearchField, StatusBadge, Table, linkClass, tdClass } from '../components/ui';
 
 export const Invoices: React.FC = () => {
+  const { can } = useAuth();
+  const canIssue = can('invoices.approve');
   const queryClient = useQueryClient();
   const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +28,7 @@ export const Invoices: React.FC = () => {
   });
   const accepted = useQuery({
     queryKey: ['accepted-quotes'],
+    enabled: canIssue,
     queryFn: async () => {
       const { data, error: listError } = await db().from('quotations').select('id, code, total, currency, service_request_id').eq('status', 'accepted').order('created_at', { ascending: false });
       if (listError) throw listError;
@@ -55,7 +60,7 @@ export const Invoices: React.FC = () => {
     <Page title="Invoices" description="Issue invoices from accepted quotations and review balances.">
       <Notice tone="error">{error}</Notice>
       <Notice tone="success">{success}</Notice>
-      <Card title="Accepted quotations">
+      {canIssue ? <Card title="Accepted quotations">
         {(accepted.data ?? []).length === 0 ? <p className="text-sm text-slate-500">No accepted quotations are waiting.</p> : (
           <ul className="space-y-2">
             {accepted.data?.map((quote) => (
@@ -66,13 +71,13 @@ export const Invoices: React.FC = () => {
             ))}
           </ul>
         )}
-      </Card>
+      </Card> : null}
       <SearchField value={term} onChange={(value) => { setTerm(value); page.setPage(1); }} placeholder="Search invoice code or status" />
       <DataState loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!rows.length} emptyLabel={term ? 'No invoices match that search.' : 'No invoices yet.'}>
         <Table head={['Invoice', 'Status', 'Total', { content: 'Balance', className: 'hidden sm:table-cell' }]}>
           {page.slice.map((row) => (
             <tr key={row.id}>
-              <td className={`${tdClass} font-medium`}>{row.code}</td>
+              <td className={`${tdClass} font-medium`}><Link className={linkClass} to={`/invoices/${row.id}`}>{row.code}</Link></td>
               <td className={tdClass}><StatusBadge status={row.status} /></td>
               <td className={tdClass}>{formatMoney(row.total, row.currency ?? 'KES')}</td>
               <td className={`${tdClass} hidden sm:table-cell`}>{formatMoney(row.balance, row.currency ?? 'KES')}</td>

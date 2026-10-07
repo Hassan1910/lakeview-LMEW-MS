@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '../lib/supabase';
 import { statusLabel } from '../lib/format';
 import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
-import { Page, Pagination, SearchField, Table, tdClass } from '../components/ui';
+import { Page, Pagination, SearchField, Table, linkClass, tdClass } from '../components/ui';
 
 export const Vessels: React.FC = () => {
   const [term, setTerm] = useState('');
@@ -31,7 +32,7 @@ export const Vessels: React.FC = () => {
             const customer = Array.isArray(row.customer) ? row.customer[0] : row.customer;
             return (
               <tr key={row.id}>
-                <td className={`${tdClass} font-medium text-slate-900 dark:text-slate-50`}>{row.name}</td>
+                <td className={`${tdClass} font-medium`}><Link className={linkClass} to={`/vessels/${row.id}`}>{row.name}</Link></td>
                 <td className={`${tdClass} hidden sm:table-cell`}>{row.registration_no || '—'}</td>
                 <td className={tdClass}>{statusLabel(row.type)}</td>
                 <td className={`${tdClass} hidden md:table-cell`}>{customer?.company_name || '—'}</td>

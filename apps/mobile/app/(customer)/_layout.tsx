@@ -31,7 +31,7 @@ export default function CustomerTabsLayout() {
       <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="home-variant-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="my-requests" options={{ title: 'Requests', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-text-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="new-request" options={{ title: 'New', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="plus-circle-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="invoices" options={{ title: 'Pay', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="credit-card-outline" color={color} size={size} /> }} />
+      <Tabs.Screen name="invoices" options={{ title: 'Invoices', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="credit-card-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="account-outline" color={color} size={size} /> }} />
       <Tabs.Screen name="request/[id]" options={hidden('Request')} />
       <Tabs.Screen name="vessels" options={hidden('Vessels')} />

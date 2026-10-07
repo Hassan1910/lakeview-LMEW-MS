@@ -119,8 +119,10 @@ export default function PayScreen() {
         {payable ? (
           <>
             <TextInput label="Paystack email" value={email} onChangeText={setEmail} mode="outlined" autoCapitalize="none" keyboardType="email-address" />
+            <Text style={ui.muted}>Paystack opens a secure checkout for card or mobile money. It does not send an M-Pesa prompt to your phone.</Text>
             <Button mode="contained" loading={loading} disabled={loading} onPress={pay}>Pay with Paystack</Button>
-            <Text style={ui.section}>Or submit proof of an offline payment</Text>
+            <Text style={ui.section}>Already paid by M-Pesa, cash, or bank?</Text>
+            <Text style={ui.muted}>Upload a photo of the receipt. Finance confirms it before the balance changes. This is not a second charge.</Text>
             <View style={ui.row}>
               {methods.map((item) => <Choice key={item} label={labelize(item)} selected={method === item} onPress={() => setMethod(item)} />)}
             </View>
