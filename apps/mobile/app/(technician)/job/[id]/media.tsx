@@ -9,6 +9,7 @@ import { db } from '../../../../src/lib/db';
 import { ScreenBody } from '../../../../src/components/ScreenBody';
 import { Choice, Notice } from '../../../../src/components/ui';
 import { friendlyError, labelize } from '../../../../src/lib/format';
+import { imageUploadBody } from '../../../../src/lib/imageUpload';
 import { ui } from '../../../../src/theme';
 
 const kinds = ['before', 'after', 'progress', 'document'] as const;
@@ -36,22 +37,25 @@ export default function JobMedia() {
 
   const upload = async () => {
     if (!profile || saving) return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'] });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.8 });
     if (result.canceled) return;
     setSaving(true);
     setError(null);
     const asset = result.assets[0];
     const path = `${id}/${kind}-${Date.now()}.jpg`;
     try {
-      const bytes = await (await fetch(asset.uri)).arrayBuffer();
-      const stored = await db().storage.from('work-order-media').upload(path, bytes, { contentType: 'image/jpeg' });
+      const { bytes, contentType } = imageUploadBody(asset);
+      const stored = await db().storage.from('work-order-media').upload(path, bytes, { contentType });
       if (stored.error) {
         setSaving(false);
         return setError(friendlyError(stored.error.message));
       }
       const { error: insertError } = await db().from('work_order_media').insert({ work_order_id: id, storage_path: path, kind, uploaded_by: profile.id });
       setSaving(false);
-      if (insertError) setError(friendlyError(insertError.message));
+      if (insertError) {
+        await db().storage.from('work-order-media').remove([path]);
+        setError(friendlyError(insertError.message));
+      }
       else {
         setMessage(`${labelize(kind)} photo uploaded`);
         queryClient.invalidateQueries({ queryKey: ['job-media', id] });

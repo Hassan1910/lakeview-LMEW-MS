@@ -32,6 +32,7 @@ const EXTRA_LABELS: Record<string, string> = {
   paid: 'Paid',
   pending: 'Pending',
   confirmed: 'Confirmed',
+  failed: 'Failed',
   refunded: 'Refunded',
   overdue: 'Overdue',
   partial: 'Partially paid',

@@ -56,6 +56,6 @@ export interface PaystackVerifyResponse {
 }
 
 export interface PaystackWebhookPayload {
-  event: 'charge.success' | 'transfer.success' | 'transfer.failed';
+  event: 'charge.success' | 'transfer.success' | 'transfer.failed' | 'refund.processed';
   data: PaystackVerifyResponse['data'];
 }

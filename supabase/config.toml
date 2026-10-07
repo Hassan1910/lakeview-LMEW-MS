@@ -421,6 +421,9 @@ enabled = true
 [functions.create-paystack-payment]
 verify_jwt = true
 
+[functions.verify-paystack-payment]
+verify_jwt = true
+
 [functions.paystack-webhook]
 verify_jwt = false
 

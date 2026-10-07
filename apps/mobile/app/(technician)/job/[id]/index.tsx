@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { db, watchTable } from '../../../../src/lib/db';
 import { ScreenBody } from '../../../../src/components/ScreenBody';
 import { Choice, FieldLine, Notice } from '../../../../src/components/ui';
-import { friendlyError, labelize, one } from '../../../../src/lib/format';
+import { formatWhen, friendlyError, labelize, mapsSearchUrl, one } from '../../../../src/lib/format';
+import { PriorityBadge, StatusBadge } from '../../../../src/components/StatusBadge';
 import { ui } from '../../../../src/theme';
 
 const statuses = ['assigned', 'in_progress', 'blocked', 'completed'] as const;
@@ -23,7 +24,7 @@ export default function JobDetail() {
     queryKey: ['job', id],
     enabled: Boolean(id),
     queryFn: async () => {
-      const { data, error: queryError } = await db().from('work_orders').select('*, service_request:service_requests(title, description, location_text, customer:customers(company_name, profile:profiles(full_name, phone)), vessel:vessels(name, registration_no, engine_details))').eq('id', id).single();
+      const { data, error: queryError } = await db().from('work_orders').select('*, service_request:service_requests(title, description, priority, location_text, customer:customers(company_name, profile:profiles!profile_id(full_name, phone)), vessel:vessels(name, registration_no, engine_details))').eq('id', id).single();
       if (queryError) throw queryError;
       return data;
     },
@@ -55,6 +56,7 @@ export default function JobDetail() {
       queryClient.invalidateQueries({ queryKey: ['job', id] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['tech-count'] });
+      queryClient.invalidateQueries({ queryKey: ['tech-today'] });
     }
   };
 
@@ -70,15 +72,20 @@ export default function JobDetail() {
       <ScrollView contentContainerStyle={ui.pad}>
         <Text style={ui.title}>{job?.code ?? 'Job'}</Text>
         <Text style={ui.body}>{request?.title}</Text>
-        <Text style={ui.muted}>{request?.description}</Text>
+        <View style={ui.row}>
+          <StatusBadge kind="job" status={job?.status} />
+          <PriorityBadge priority={request?.priority} />
+        </View>
+        {request?.description ? <Text style={ui.muted}>{request.description}</Text> : null}
         <FieldLine label="Customer" value={profile?.full_name ?? customer?.company_name} />
         <FieldLine label="Phone" value={phone ?? 'Not on file'} />
-        {phone ? <Button mode="outlined" onPress={() => Linking.openURL(`tel:${phone}`)}>Call customer</Button> : null}
-        <FieldLine label="Scheduled" value={job?.scheduled_start ?? 'Not scheduled'} />
+        {phone ? <Button mode="outlined" icon="phone" onPress={() => Linking.openURL(`tel:${phone}`)}>Call customer</Button> : null}
+        <FieldLine label="Scheduled" value={job?.scheduled_start ? formatWhen(job.scheduled_start) : 'Not scheduled'} />
         <FieldLine label="Vessel" value={[vessel?.name, vessel?.registration_no].filter(Boolean).join(' · ')} />
         <FieldLine label="Engine" value={vessel?.engine_details} />
         <FieldLine label="Location" value={request?.location_text} />
-        <Text style={ui.section}>Status</Text>
+        {request?.location_text ? <Button mode="outlined" icon="map-marker" onPress={() => Linking.openURL(mapsSearchUrl(request.location_text))}>Open in maps</Button> : null}
+        <Text style={ui.section}>Update status</Text>
         <View style={ui.row}>
           {statuses.map((status) => (
             <Choice key={status} label={labelize(status)} selected={job?.status === status} onPress={() => updateStatus(status)} />

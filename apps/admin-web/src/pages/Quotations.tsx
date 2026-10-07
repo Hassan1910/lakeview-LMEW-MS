@@ -4,14 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { QuotationCreateSchema, type QuotationCreateInput } from '@lmew/shared-types';
 import { db } from '../lib/supabase';
-import { useAuth } from '../auth/AuthProvider';
 import { formatMoney } from '../lib/format';
 import { DataState } from '../components/DataState';
 import { useClientPage } from '../components/useClientPage';
 import { Button, Card, Field, Notice, Page, Pagination, SearchField, StatusBadge, Table, inputClass, tdClass } from '../components/ui';
 
 export const Quotations: React.FC = () => {
-  const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -48,18 +46,17 @@ export const Quotations: React.FC = () => {
   const submit = form.handleSubmit(async (values) => {
     setError(null);
     setSuccess(null);
-    const created = await db().from('quotations').insert({
-      service_request_id: values.service_request_id,
-      valid_until: values.valid_until,
-      notes: values.notes,
-      created_by: profile?.id,
-      status: 'draft',
-    }).select('id').single();
-    if (created.error || !created.data) return setError(created.error?.message ?? 'Could not create quotation');
-    const inserted = await db().from('quotation_items').insert(values.items.map((item) => ({ ...item, quotation_id: created.data.id })));
-    if (inserted.error) return setError(inserted.error.message);
-    await db().from('quotations').update({ status: 'sent' }).eq('id', created.data.id);
-    setSuccess('Quotation sent.');
+    const saved = await db().rpc('save_request_quotation', {
+      p_service_request_id: values.service_request_id,
+      p_valid_until: values.valid_until,
+      p_notes: values.notes ?? null,
+      p_items: values.items,
+      p_send: true,
+      p_replace_header: true,
+    });
+    const updated = Boolean(saved.data && typeof saved.data === 'object' && 'updated' in saved.data && saved.data.updated);
+    if (saved.error || !saved.data) return setError(saved.error?.message ?? 'Could not save quotation');
+    setSuccess(updated ? 'Draft quotation updated and sent.' : 'Quotation sent.');
     queryClient.invalidateQueries({ queryKey: ['quotations'] });
   });
   const rows = (query.data ?? []).filter((row) => `${row.code ?? ''} ${row.status ?? ''}`.toLowerCase().includes(term.trim().toLowerCase()));

@@ -89,7 +89,7 @@ export type InvoiceStatus =
   | 'overdue'
   | 'cancelled';
 
-export type PaymentStatus = 'pending' | 'confirmed' | 'failed' | 'refunded';
+export type PaymentStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled' | 'refunded';
 
 /**
  * payment_method enum — includes 'paystack' (project decision to keep Paystack gateway).

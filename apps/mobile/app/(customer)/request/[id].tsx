@@ -9,7 +9,8 @@ import { db, watchTable } from '../../../src/lib/db';
 import { ScreenBody } from '../../../src/components/ScreenBody';
 import { StatusStepper } from '../../../src/components/StatusStepper';
 import { FieldLine, Notice } from '../../../src/components/ui';
-import { friendlyError, labelize, money, readFunctionError } from '../../../src/lib/format';
+import { formatDateOnly, formatWhen, friendlyError, labelize, money, readFunctionError } from '../../../src/lib/format';
+import { StatusBadge } from '../../../src/components/StatusBadge';
 import { ui } from '../../../src/theme';
 
 type Quote = { id: string; code: string | null; status: string; total: number; currency: string };
@@ -63,13 +64,12 @@ export default function RequestDetail() {
 
   const row = request.data;
 
-  const respond = async (status: 'accepted' | 'rejected') => {
-    const quote = ((row?.quotations ?? []) as Quote[]).find((item) => item.status === 'sent');
-    if (!quote) return setSendError('There is no quotation waiting for approval.');
+  const respond = async (quoteId: string, status: 'accepted' | 'rejected') => {
     setBusy(true);
-    const { error } = await db().from('quotations').update({ status }).eq('id', quote.id);
+    const { data, error } = await db().from('quotations').update({ status }).eq('id', quoteId).eq('status', 'sent').select('id');
     setBusy(false);
     if (error) setSendError(friendlyError(error.message));
+    else if (!data?.length) setSendError('That quotation is no longer waiting for approval.');
     else {
       setActionMessage(status === 'accepted' ? 'Quotation accepted. The yard can start the repair.' : 'Quotation rejected.');
       setSendError(null);
@@ -102,27 +102,35 @@ export default function RequestDetail() {
     <ScreenBody loading={request.isLoading} error={request.error instanceof Error ? request.error.message : null} onRetry={() => request.refetch()}>
       <ScrollView contentContainerStyle={ui.pad}>
         <Text style={ui.title}>{row?.title}</Text>
-        <Text style={ui.muted}>{row?.code}</Text>
+        {row?.code ? <Text style={ui.caption}>{row.code}</Text> : null}
+        {row ? <StatusBadge kind="service" status={row.status} /> : null}
         {row ? <StatusStepper status={row.status} /> : null}
-        <Text style={ui.body}>{row?.description}</Text>
+        {row?.description ? <Text style={ui.body}>{row.description}</Text> : null}
         <FieldLine label="Vessel" value={row?.vessel?.name ?? 'Not set'} />
         <FieldLine label="Location" value={row?.location_text} />
+        <FieldLine label="Service" value={row?.category ? labelize(row.category) : null} />
+        <FieldLine label="Preferred date" value={row?.preferred_date ? formatDateOnly(String(row.preferred_date)) : null} />
+        <Text style={ui.section}>Quotations</Text>
+        {((row?.quotations ?? []) as Quote[]).length === 0 ? <Text style={ui.muted}>No quotations yet.</Text> : null}
         {((row?.quotations ?? []) as Quote[]).map((quote) => (
           <View key={quote.id} style={ui.card}>
             <Text style={ui.section}>{quote.code ?? 'Quotation'}</Text>
-            <Text style={ui.muted}>{labelize(quote.status)} · {money(quote.total, quote.currency)}</Text>
-            <Button mode="outlined" disabled={busy} onPress={() => downloadQuote(quote.id)}>Download quotation</Button>
+            <StatusBadge kind="quote" status={quote.status} />
+            <Text style={ui.body}>{money(quote.total, quote.currency)}</Text>
+            <Button mode="outlined" icon="download" disabled={busy} onPress={() => downloadQuote(quote.id)}>Download quotation</Button>
             {quote.status === 'sent' ? (
               <View style={ui.row}>
-                <Button mode="contained" disabled={busy} onPress={() => respond('accepted')}>Accept</Button>
-                <Button mode="outlined" disabled={busy} onPress={() => respond('rejected')}>Reject</Button>
+                <Button mode="contained" disabled={busy} onPress={() => respond(quote.id, 'accepted')}>Accept</Button>
+                <Button mode="outlined" disabled={busy} onPress={() => respond(quote.id, 'rejected')}>Reject</Button>
               </View>
             ) : null}
           </View>
         ))}
+        <Text style={ui.section}>Invoices</Text>
+        {((row?.invoices ?? []) as Invoice[]).length === 0 ? <Text style={ui.muted}>No invoices for this request yet.</Text> : null}
         {((row?.invoices ?? []) as Invoice[]).map((invoice) => (
           <Link key={invoice.id} href={`/(customer)/invoice/${invoice.id}`} asChild>
-            <Button mode="outlined">Invoice {invoice.code ?? ''} · {labelize(invoice.status)} · balance {money(invoice.balance, invoice.currency)}</Button>
+            <Button mode="outlined" icon="receipt">{[invoice.code ?? 'Invoice', labelize(invoice.status), money(invoice.balance, invoice.currency)].filter(Boolean).join(' · ')}</Button>
           </Link>
         ))}
         <Text style={ui.section}>Photos</Text>
@@ -134,7 +142,7 @@ export default function RequestDetail() {
         {(messages.data ?? []).length === 0 ? <Text style={ui.muted}>No messages yet.</Text> : null}
         {(messages.data ?? []).map((message) => (
           <View key={message.id} style={ui.card}>
-            <Text style={ui.muted}>{message.sender_id === profile?.id ? 'You' : 'Yard'}</Text>
+            <Text style={ui.caption}>{message.sender_id === profile?.id ? 'You' : 'Yard'} · {formatWhen(message.created_at)}</Text>
             <Text style={ui.body}>{message.body}</Text>
           </View>
         ))}

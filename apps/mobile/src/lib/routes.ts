@@ -12,6 +12,13 @@ export function routeForNotification(data: Record<string, unknown> | null | unde
   return null;
 }
 
+/** Request id a technician can resolve to their own job. Null when a direct route already exists. */
+export function technicianRequestFallback(data: Record<string, unknown> | null | undefined, role: string | null) {
+  if (role !== 'technician' || !data) return null;
+  if (routeForNotification(data, role)) return null;
+  return typeof data.service_request_id === 'string' ? data.service_request_id : null;
+}
+
 export function routeForSearchHit(kind: string, id: string) {
   if (kind === 'service_request') return `/(customer)/request/${id}`;
   if (kind === 'vessel') return `/(customer)/vessel/${id}`;

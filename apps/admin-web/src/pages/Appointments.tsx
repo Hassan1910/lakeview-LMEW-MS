@@ -7,7 +7,7 @@ import { useCustomerOptions, useVesselOptions } from '../lib/options';
 import { statusLabel } from '../lib/format';
 import { Badge, Button, Card, Field, Notice, Page, Table, errorMessage, inputClass, statusTone } from '../components/ui';
 
-const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled', 'no_show'];
+const STATUSES = ['scheduled', 'completed', 'cancelled'];
 
 export const Appointments: React.FC = () => {
   const { can, profile } = useAuth();

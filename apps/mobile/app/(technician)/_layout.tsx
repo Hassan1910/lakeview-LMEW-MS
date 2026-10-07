@@ -25,13 +25,14 @@ export default function TechnicianLayout() {
         tabBarActiveTintColor: palette.primary,
         tabBarInactiveTintColor: '#94A3B8',
         tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: palette.border },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { minHeight: 44 },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Today', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="briefcase-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="my-jobs" options={{ title: 'Jobs', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-list-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="notifications" options={{ title: 'Alerts', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bell-outline" color={color} size={size} /> }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="account-outline" color={color} size={size} /> }} />
+      <Tabs.Screen name="home" options={{ title: 'Today', tabBarIcon: ({ color, size, focused }) => <MaterialCommunityIcons name={focused ? 'briefcase' : 'briefcase-outline'} color={color} size={size} /> }} />
+      <Tabs.Screen name="my-jobs" options={{ title: 'Jobs', tabBarIcon: ({ color, size, focused }) => <MaterialCommunityIcons name={focused ? 'clipboard-list' : 'clipboard-list-outline'} color={color} size={size} /> }} />
+      <Tabs.Screen name="notifications" options={{ title: 'Alerts', tabBarIcon: ({ color, size, focused }) => <MaterialCommunityIcons name={focused ? 'bell' : 'bell-outline'} color={color} size={size} /> }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size, focused }) => <MaterialCommunityIcons name={focused ? 'account' : 'account-outline'} color={color} size={size} /> }} />
       <Tabs.Screen name="jobs" options={hidden('Jobs')} />
       <Tabs.Screen name="job/[id]/index" options={hidden('Job')} />
       <Tabs.Screen name="job/[id]/media" options={hidden('Photos')} />

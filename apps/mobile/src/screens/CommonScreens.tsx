@@ -1,18 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, RefreshControl, ScrollView, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { kenyanPhoneRegex } from '@lmew/shared-types';
 import { useAuthStore } from '../store/authStore';
 import { db, watchTable } from '../lib/db';
 import { ScreenBody } from '../components/ScreenBody';
 import { FieldLine, Notice, Page } from '../components/ui';
 import { useLanguage } from '../i18n';
-import { friendlyError, safeFileName } from '../lib/format';
+import { dayLabel, friendlyError, labelize, safeFileName } from '../lib/format';
+import { imageUploadBody } from '../lib/imageUpload';
 import { openNotification } from '../lib/notificationRoutes';
 import { BrandLockup } from '../components/BrandMark';
+import { AlertRow } from '../components/AlertRow';
+import { Avatar } from '../components/Avatar';
+import { ScreenHeader } from '../components/ScreenHeader';
+import { SettingsRow } from '../components/SettingsRow';
 import { palette, ui } from '../theme';
 
 function areaFor(role: string | null | undefined) {
@@ -28,7 +34,7 @@ export function NotificationsScreen() {
     queryKey: ['notifications-all', profile?.id],
     enabled: Boolean(profile?.id),
     queryFn: async () => {
-      const { data, error } = await db().from('notifications').select('id, title, body, read_at, created_at, data').eq('user_id', profile!.id).order('created_at', { ascending: false });
+      const { data, error } = await db().from('notifications').select('id, type, title, body, read_at, created_at, data').eq('user_id', profile!.id).order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -44,31 +50,43 @@ export function NotificationsScreen() {
       queryClient.invalidateQueries({ queryKey: ['notifications-all', profile?.id] });
       queryClient.invalidateQueries({ queryKey: ['notifications', profile?.id] });
     }
-    openNotification(data, profile?.role ?? null);
+    await openNotification(data, profile?.role ?? null);
   };
 
   const groups = new Map<string, NonNullable<typeof query.data>>();
   for (const note of query.data ?? []) {
-    const day = note.created_at.slice(0, 10);
+    const day = dayLabel(note.created_at);
     groups.set(day, [...(groups.get(day) ?? []), note]);
   }
 
   return (
-    <ScreenBody loading={query.isLoading} error={query.error instanceof Error ? query.error.message : null} empty={!query.data?.length} emptyLabel="No notifications yet." onRetry={() => query.refetch()}>
-      <ScrollView contentContainerStyle={ui.pad}>
+    <ScreenBody
+      loading={query.isLoading}
+      skeleton={4}
+      error={query.error instanceof Error ? query.error.message : null}
+      empty={!query.data?.length}
+      emptyIcon="bell-off-outline"
+      emptyTitle="No notifications yet"
+      emptyLabel="Updates about your jobs and requests will appear here."
+      onRetry={() => query.refetch()}
+    >
+      <ScrollView
+        contentContainerStyle={ui.pad}
+        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor={palette.primary} />}
+      >
         {[...groups.entries()].map(([day, notes]) => (
           <View key={day} style={{ gap: 8 }}>
-            <Text style={styles.day}>{day}</Text>
+            <Text style={ui.caption}>{day}</Text>
             {notes.map((note) => (
-              <Pressable
+              <AlertRow
                 key={note.id}
-                accessibilityRole="button"
-                style={styles.note}
+                title={note.title}
+                body={note.body}
+                type={note.type}
+                createdAt={note.created_at}
+                unread={!note.read_at}
                 onPress={() => mark(note.id, note.data as Record<string, unknown> | null, Boolean(note.read_at))}
-              >
-                <Text style={ui.body}>{note.title}{note.read_at ? '' : '  ·  New'}</Text>
-                {note.body ? <Text style={ui.muted}>{note.body}</Text> : null}
-              </Pressable>
+              />
             ))}
           </View>
         ))}
@@ -119,13 +137,20 @@ export function ProfileScreen() {
   const uploadAvatar = async () => {
     if (!profile) return;
     setError(null);
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'] });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.8 });
     if (result.canceled) return;
     setSaving(true);
     const asset = result.assets[0];
-    const bytes = await (await fetch(asset.uri)).arrayBuffer();
+    let bytes: ArrayBuffer;
+    let contentType: string;
+    try {
+      ({ bytes, contentType } = imageUploadBody(asset));
+    } catch (err) {
+      setSaving(false);
+      return setError(friendlyError(err));
+    }
     const path = `${profile.id}/${safeFileName('avatar.jpg')}`;
-    const upload = await db().storage.from('avatars').upload(path, bytes, { upsert: true, contentType: 'image/jpeg' });
+    const upload = await db().storage.from('avatars').upload(path, bytes, { upsert: true, contentType });
     if (upload.error) {
       setSaving(false);
       return setError(friendlyError(upload.error.message));
@@ -151,43 +176,49 @@ export function ProfileScreen() {
     else { setMessage('Password updated'); setPassword(''); }
   };
 
+  const version = Constants.expoConfig?.version ?? '1.0.0';
+  const open = (href: string) => router.push(href as never);
+
   return (
     <Page>
-      <Text style={ui.title}>{profile?.full_name || 'Profile'}</Text>
-      <Text style={ui.muted}>{profile?.email} · {profile?.role}</Text>
-      <View style={ui.card}>
-        <Text style={ui.section}>Your details</Text>
-        <TextInput label="Name" value={form.full_name} onChangeText={(full_name) => setForm({ ...form, full_name })} mode="outlined" />
-        <TextInput label="Phone" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} mode="outlined" keyboardType="phone-pad" />
-        <TextInput label="Address" value={form.address} onChangeText={(address) => setForm({ ...form, address })} mode="outlined" />
-        <Button mode="contained" loading={saving} disabled={saving} onPress={save}>Save profile</Button>
-        <Button mode="outlined" disabled={saving} onPress={uploadAvatar}>Upload photo</Button>
-      </View>
-      <View style={ui.card}>
-        <Text style={ui.section}>Password</Text>
-        <TextInput label="New password" secureTextEntry value={password} onChangeText={setPassword} mode="outlined" />
-        <Button mode="outlined" disabled={saving || !password} onPress={changePassword}>Change password</Button>
-      </View>
-      <Button mode="outlined" onPress={() => void toggle()}>{t('language')}: {language}</Button>
+      <ScreenHeader
+        eyebrow={labelize(profile?.role) || 'Account'}
+        title={profile?.full_name || 'Profile'}
+        subtitle={[profile?.email, profile?.phone].filter(Boolean).join(' · ')}
+        trailing={<Avatar name={profile?.full_name} uri={profile?.avatar_url} size={56} />}
+      />
+      <Text style={ui.section}>Your details</Text>
+      <TextInput label="Name" value={form.full_name} onChangeText={(full_name) => setForm({ ...form, full_name })} mode="outlined" />
+      <TextInput label="Phone" value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} mode="outlined" keyboardType="phone-pad" />
+      <TextInput label="Address" value={form.address} onChangeText={(address) => setForm({ ...form, address })} mode="outlined" />
+      <Button mode="contained" loading={saving} disabled={saving} onPress={save}>Save profile</Button>
+      <Button mode="outlined" icon="image-outline" disabled={saving} onPress={uploadAvatar}>Change photo</Button>
+      <Text style={ui.section}>Password</Text>
+      <TextInput label="New password" secureTextEntry value={password} onChangeText={setPassword} mode="outlined" />
+      <Button mode="outlined" disabled={saving || !password} onPress={changePassword}>Change password</Button>
+      <Text style={ui.section}>Preferences</Text>
+      <SettingsRow icon="translate" label={t('language')} detail={language === 'SW' ? 'Kiswahili' : 'English'} onPress={() => void toggle()} />
       {profile?.role === 'customer' ? (
-        <View style={ui.card}>
+        <>
           <Text style={ui.section}>Yard</Text>
-          <Link href="/(customer)/vessels" asChild><Button mode="text">My vessels</Button></Link>
-          <Link href="/(customer)/quotations" asChild><Button mode="text">Quotations</Button></Link>
-          <Link href="/(customer)/notifications" asChild><Button mode="text">Notifications</Button></Link>
-        </View>
+          <SettingsRow icon="ferry" label="My vessels" onPress={() => open('/(customer)/vessels')} />
+          <SettingsRow icon="file-document-outline" label="Quotations" onPress={() => open('/(customer)/quotations')} />
+          <SettingsRow icon="bell-outline" label="Notifications" onPress={() => open('/(customer)/notifications')} />
+        </>
       ) : (
-        <Link href={`${area}/notifications` as never} asChild><Button mode="text">Notifications</Button></Link>
+        <>
+          <Text style={ui.section}>Work</Text>
+          <SettingsRow icon="bell-outline" label={profile?.role === 'technician' ? 'Alerts' : 'Notifications'} onPress={() => open(`${area}/notifications`)} />
+        </>
       )}
-      <View style={ui.card}>
-        <Text style={ui.section}>Lakeview</Text>
-        <Link href={`${area}/about` as never} asChild><Button mode="text">About</Button></Link>
-        <Link href={`${area}/help` as never} asChild><Button mode="text">Help</Button></Link>
-        <Link href={`${area}/contact` as never} asChild><Button mode="text">Contact</Button></Link>
-      </View>
+      <Text style={ui.section}>Lakeview</Text>
+      <SettingsRow icon="information-outline" label="About" onPress={() => open(`${area}/about`)} />
+      <SettingsRow icon="help-circle-outline" label="Help" onPress={() => open(`${area}/help`)} />
+      <SettingsRow icon="phone-outline" label="Contact" onPress={() => open(`${area}/contact`)} />
       {error ? <Notice tone="error" text={error} /> : null}
       {message ? <Notice tone="ok" text={message} /> : null}
-      <Button mode="text" textColor={palette.danger} onPress={signOut}>Log out</Button>
+      <SettingsRow icon="logout" label="Log out" danger onPress={signOut} />
+      <Text style={ui.caption}>Version {version}</Text>
     </Page>
   );
 }
@@ -267,8 +298,3 @@ export function ContactScreen() {
     </ScreenBody>
   );
 }
-
-const styles = StyleSheet.create({
-  day: { color: palette.muted, fontSize: 13, fontWeight: '600' },
-  note: { borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface, borderRadius: 12, padding: 12, gap: 4 },
-});

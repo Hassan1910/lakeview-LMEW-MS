@@ -47,22 +47,19 @@ export const CustomerDetail: React.FC = () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
-    const { error: updateError } = await db().from('customers').update({
-      company_name: form.company_name.trim() || null,
-      kra_pin: form.kra_pin.trim() || null,
-      notes: form.notes.trim() || null,
-    }).eq('id', query.data.id);
+    const profile = (Array.isArray(query.data.profile) ? query.data.profile[0] : query.data.profile) as Profile | null;
+    const phoneChanged = canPhone && Boolean(query.data.profile_id) && form.phone !== (profile?.phone ?? '');
+    const { error: updateError } = await db().rpc('save_customer_record', {
+      p_id: query.data.id,
+      p_company_name: form.company_name.trim() || null,
+      p_kra_pin: form.kra_pin.trim() || null,
+      p_notes: form.notes.trim() || null,
+      p_phone: form.phone.trim() || null,
+      p_update_phone: phoneChanged,
+    });
     if (updateError) {
       setSaving(false);
       return setError(updateError.message);
-    }
-    const profile = (Array.isArray(query.data.profile) ? query.data.profile[0] : query.data.profile) as Profile | null;
-    if (canPhone && query.data.profile_id && profile && form.phone !== (profile.phone ?? '')) {
-      const { error: phoneError } = await db().from('profiles').update({ phone: form.phone.trim() || null }).eq('id', query.data.profile_id);
-      if (phoneError) {
-        setSaving(false);
-        return setError(phoneError.message);
-      }
     }
     setSaving(false);
     setSuccess('Customer saved.');

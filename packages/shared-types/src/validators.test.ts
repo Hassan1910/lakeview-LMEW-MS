@@ -23,8 +23,18 @@ describe('validators', () => {
   });
 
   it('requires an invoice id for Paystack and ignores a client amount', () => {
-    const parsed = PaystackInitSchema.safeParse({ invoice_id: '80000000-0000-0000-0000-000000000001', email: 'a@b.co' });
+    const raw = {
+      invoice_id: '80000000-0000-0000-0000-000000000001',
+      email: 'a@b.co',
+      amount: 1,
+      callback_url: 'lmew://paystack/callback',
+    };
+    const parsed = PaystackInitSchema.safeParse(raw);
     expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.callback_url).toBe('lmew://paystack/callback');
+      expect('amount' in parsed.data).toBe(false);
+    }
     expect(LoginSchema.safeParse({ email: 'not-an-email', password: 'x' }).success).toBe(false);
   });
 });

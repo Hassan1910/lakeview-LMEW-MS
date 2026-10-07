@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { purchaseOrderReceiveProblem } from '@lmew/shared-types';
 import { db } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
@@ -97,6 +98,8 @@ export const PurchaseOrderDetail: React.FC = () => {
   }, `Order marked ${status}.`);
 
   const receive = () => run(async () => {
+    const problem = purchaseOrderReceiveProblem(((order.data?.lines ?? []) as PoLine[]).map((item) => ({ inventoryItemId: item.inventory_item_id })));
+    if (problem) return problem;
     const { error } = await db().rpc('receive_purchase_order', { p_id: id });
     queryClient.invalidateQueries({ queryKey: ['inventory'] });
     queryClient.invalidateQueries({ queryKey: ['low-stock-count'] });

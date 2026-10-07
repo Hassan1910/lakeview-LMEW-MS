@@ -5,6 +5,7 @@ import { kenyanPhoneRegex } from '@lmew/shared-types';
 import { db } from '../../src/lib/db';
 import { friendlyError } from '../../src/lib/format';
 import { FormScreen, Notice } from '../../src/components/ui';
+import { BrandInline } from '../../src/components/BrandMark';
 import { ui } from '../../src/theme';
 
 export default function OtpVerifyScreen() {
@@ -40,7 +41,8 @@ export default function OtpVerifyScreen() {
   };
 
   return (
-    <FormScreen>
+    <FormScreen topInset>
+      <BrandInline />
       <Text style={ui.muted}>Optional phone sign-in for an account that already has this number.</Text>
       <TextInput label="Phone" value={phone} onChangeText={setPhone} mode="outlined" keyboardType="phone-pad" />
       {sent ? <TextInput label="Code" value={code} onChangeText={setCode} mode="outlined" keyboardType="number-pad" /> : null}

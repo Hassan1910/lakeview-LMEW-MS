@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { routeForNotification, routeForSearchHit } from './routes.ts';
+import { routeForNotification, routeForSearchHit, technicianRequestFallback } from './routes.ts';
 
 describe('routeForNotification', () => {
   it('opens the service request when a customer notification includes one', () => {
@@ -26,6 +26,13 @@ describe('routeForNotification', () => {
     assert.equal(routeForNotification({}, 'customer'), null);
     assert.equal(routeForNotification(null, 'technician'), null);
     assert.equal(routeForNotification({ invoice_id: 12 }, 'customer'), null);
+  });
+
+  it('does not send a technician to the jobs list when only a request id is present', () => {
+    assert.equal(routeForNotification({ service_request_id: 'req-1' }, 'technician'), null);
+    assert.equal(technicianRequestFallback({ service_request_id: 'req-1' }, 'technician'), 'req-1');
+    assert.equal(technicianRequestFallback({ work_order_id: 'job-1', service_request_id: 'req-1' }, 'technician'), null);
+    assert.equal(technicianRequestFallback({ service_request_id: 'req-1' }, 'customer'), null);
   });
 });
 

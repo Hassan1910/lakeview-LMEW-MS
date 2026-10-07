@@ -41,11 +41,13 @@
     "react-native-screens": "~4.26.2",
     "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.3",
+    "react-native-webview": "13.16.1",
     "zod": "^3.25.76",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@expo/env": "~2.4.3",
     "@types/react": "~19.2.3",
     "typescript": "^6.0.3"
   }

@@ -114,9 +114,17 @@ export type InventoryItemCreateInput = z.infer<typeof InventoryItemCreateSchema>
 export const PaystackInitSchema = z.object({
   invoice_id: z.string().uuid(),
   email: z.string().email('Valid email required for Paystack'),
+  callback_url: z.string().min(1).optional(),
 });
 
 export type PaystackInitInput = z.infer<typeof PaystackInitSchema>;
+
+export const PaystackVerifySchema = z.object({
+  reference: z.string().trim().min(1).max(200),
+  observe: z.boolean().optional(),
+});
+
+export type PaystackVerifyInput = z.infer<typeof PaystackVerifySchema>;
 
 // ---------------------------------------------------------------------------
 // Auth

@@ -16,6 +16,15 @@ export function BrandMark({ size = 48 }: { size?: number }) {
   );
 }
 
+export function BrandInline() {
+  return (
+    <View style={styles.inline}>
+      <BrandMark size={36} />
+      <Text style={styles.inlineName}>Lakeview Marine</Text>
+    </View>
+  );
+}
+
 export function BrandLockup({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   const [loaded] = useFonts({ Outfit_600SemiBold, Outfit_700Bold });
   const light = tone === 'light';
@@ -39,6 +48,8 @@ const styles = StyleSheet.create({
   kicker: { marginTop: 2, fontSize: 11, fontWeight: '600', letterSpacing: 2.2, textTransform: 'uppercase' },
   kickerLight: { color: '#7DD3FC' },
   kickerDark: { color: '#0B4F6C' },
+  inline: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  inlineName: { color: '#0F172A', fontSize: 18, fontWeight: '700', flexShrink: 1 },
   outfitBold: { fontFamily: 'Outfit_700Bold' },
   outfitSemi: { fontFamily: 'Outfit_600SemiBold' },
 });

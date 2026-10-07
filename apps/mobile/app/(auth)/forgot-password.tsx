@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '../../src/lib/db';
 import { friendlyError } from '../../src/lib/format';
 import { FormScreen, Notice } from '../../src/components/ui';
+import { BrandInline } from '../../src/components/BrandMark';
 
 const emailSchema = z.string().email('Enter the email on your account');
 
@@ -30,7 +31,8 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <FormScreen>
+    <FormScreen topInset>
+      <BrandInline />
       <TextInput label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" mode="outlined" />
       {error ? <Notice tone="error" text={error} /> : null}
       {message ? <Notice tone="ok" text={message} /> : null}

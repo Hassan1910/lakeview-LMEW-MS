@@ -1,5 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { adminClient, corsHeaders, hasPermission, json, requireUser } from "../_shared/http.ts";
+import {
+  fetchPaystackTransaction,
+  MOBILE_PAYSTACK_CANCEL,
+  paymentConfirmationPatch,
+  paymentFailurePatch,
+  planPendingPaystackResume,
+  resolvePaystackCallback,
+  settlePaystackCharge,
+  storedAuthorizationUrl,
+  type PaystackLookup,
+} from "../_shared/paystack.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -13,6 +24,9 @@ serve(async (req) => {
     const invoiceId = body.invoice_id as string | undefined;
     const email = body.email as string | undefined;
     if (!invoiceId || !email) return json({ error: "invoice_id and email are required" }, 400);
+
+    const callback = resolvePaystackCallback(body.callback_url, Deno.env.get("PAYSTACK_CALLBACK_URL"));
+    if (!callback.ok) return json({ error: callback.error }, 400);
 
     const admin = adminClient();
     const { data: profile } = await admin
@@ -44,22 +58,91 @@ serve(async (req) => {
       return json({ error: "Forbidden" }, 403);
     }
 
-    const { data: pending } = await admin
+    const { data: pendingRows, error: pendingError } = await admin
       .from("payments")
-      .select("id")
+      .select("id, status, invoice_id, amount, reference, raw_payload")
       .eq("invoice_id", invoice.id)
       .eq("method", "paystack")
       .eq("status", "pending")
       .limit(1);
-    if (pending && pending.length > 0) {
-      return json({ error: "A Paystack payment is already pending for this invoice" }, 409);
+    if (pendingError) return json({ error: pendingError.message }, 500);
+
+    const pending = pendingRows?.[0];
+    if (pending) {
+      const releasePending = async (payload: unknown, outcome: "failed" | "cancelled" = "failed") => {
+        const { error } = await admin.from("payments").update(paymentFailurePatch(payload, outcome)).eq("id", pending.id).eq("status", "pending");
+        return error;
+      };
+
+      if (!pending.reference) {
+        const error = await releasePending({ verify: "Pending Paystack row had no reference" });
+        if (error) return json({ error: error.message }, 500);
+      } else {
+        const secret = Deno.env.get("PAYSTACK_SECRET_KEY");
+        if (!secret) return json({ error: "PAYSTACK_SECRET_KEY is not configured" }, 500);
+        const checked = await fetchPaystackTransaction(pending.reference, secret);
+        const authorizationUrl = storedAuthorizationUrl(pending.raw_payload);
+        const lookup: PaystackLookup = !checked.reachable || (!checked.transaction && !checked.missing)
+          ? { kind: "unreachable" }
+          : !checked.transaction
+            ? { kind: "missing" }
+            : { kind: "found", status: checked.transaction.status };
+        const plan = planPendingPaystackResume({
+          pendingAmount: Number(pending.amount),
+          invoiceBalance: amount,
+          hasCheckoutUrl: Boolean(authorizationUrl),
+          lookup,
+        });
+
+        if (plan.action === "stop") return json({ error: plan.error }, 409);
+
+        if (plan.action === "resume") {
+          if (authorizationUrl) {
+            return json({
+              status: "pending",
+              resumed: true,
+              processing: lookup.kind === "found",
+              authorization_url: authorizationUrl,
+              reference: pending.reference,
+              amount: pending.amount,
+            });
+          }
+          return json({ error: checked.reachable ? (checked.message ?? "This payment is still open.") : checked.message }, checked.reachable ? 409 : 503);
+        }
+
+        if (plan.action === "settle" && checked.transaction) {
+          const settled = settlePaystackCharge(pending, checked.transaction);
+          if (settled.outcome === "error") return json({ error: settled.error }, settled.status);
+          if (settled.outcome === "confirmed") {
+            if (!settled.duplicate) {
+              const { error } = await admin.from("payments").update(paymentConfirmationPatch(checked.transaction)).eq("id", pending.id).in("status", ["pending", "failed", "cancelled"]);
+              if (error) return json({ error: error.message }, 500);
+            }
+            return json({
+              status: "confirmed",
+              reference: pending.reference,
+              amount: pending.amount,
+              invoice_id: invoice.id,
+            });
+          }
+          if (settled.outcome === "processing") {
+            return json({ error: "A payment for the previous balance is still processing." }, 409);
+          }
+          if (settled.change && (settled.outcome === "failed" || settled.outcome === "cancelled")) {
+            const error = await releasePending(checked.transaction, settled.outcome);
+            if (error) return json({ error: error.message }, 500);
+          }
+        } else if (plan.action === "release") {
+          const error = await releasePending(checked.transaction ?? { verify: checked.message ?? "Transaction not found" });
+          if (error) return json({ error: error.message }, 500);
+        }
+      }
     }
 
     const secret = Deno.env.get("PAYSTACK_SECRET_KEY");
     if (!secret) return json({ error: "PAYSTACK_SECRET_KEY is not configured" }, 500);
 
     const reference = `LMEW-${(invoice.code ?? invoice.id).toString().slice(0, 24)}-${crypto.randomUUID().slice(0, 8)}`;
-    const callback = Deno.env.get("PAYSTACK_CALLBACK_URL");
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
@@ -68,9 +151,13 @@ serve(async (req) => {
         amount: Math.round(amount * 100),
         currency: "KES",
         reference,
-        callback_url: callback,
+        callback_url: callback.callback,
         channels: ["card", "mobile_money", "bank", "bank_transfer"],
-        metadata: { invoice_id: invoice.id, profile_id: customer?.profile_id ?? null },
+        metadata: {
+          invoice_id: invoice.id,
+          profile_id: customer?.profile_id ?? null,
+          cancel_action: `${MOBILE_PAYSTACK_CANCEL}?reference=${encodeURIComponent(reference)}`,
+        },
       }),
     });
     const paystackData = await paystackRes.json();

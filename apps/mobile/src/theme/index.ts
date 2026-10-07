@@ -14,8 +14,14 @@ export const palette = {
   dangerBg: '#FEF2F2',
   success: '#166534',
   successBg: '#F0FDF4',
+  warning: '#B45309',
   warningBg: '#FFFBEB',
+  infoBg: '#E8F1F5',
 };
+
+export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
+
+export const radius = { card: 12, control: 10, pill: 999 } as const;
 
 export const lmewMobileTheme = {
   ...DefaultTheme,
@@ -43,6 +49,7 @@ export const ui = StyleSheet.create({
   section: { color: palette.text, fontSize: 16, fontWeight: '600' },
   body: { color: palette.text, fontSize: 15, lineHeight: 22 },
   muted: { color: palette.muted, fontSize: 14, lineHeight: 20 },
+  caption: { color: palette.muted, fontSize: 13, lineHeight: 18 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   card: {
     backgroundColor: palette.surface,

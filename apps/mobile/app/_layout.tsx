@@ -1,3 +1,4 @@
+import '../src/lib/supabase';
 import React, { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
@@ -5,9 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lmewMobileTheme, palette } from '../src/theme';
 import { useAuthStore } from '../src/store/authStore';
-import { getLmewSupabase, initLmewSupabase } from '@lmew/supabase-client';
-import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
+import { getLmewSupabase } from '@lmew/supabase-client';
 import type { UserRole } from '@lmew/shared-types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { listenForNotificationTaps, registerPushToken } from '../src/lib/push';
@@ -20,38 +19,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const ExpoSecureStoreAdapter = {
-  getItem: (key: string) => SecureStore.getItemAsync(key),
-  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
-  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
-};
-
-function InitSupabase() {
-  const supabaseUrl =
-    Constants.expoConfig?.extra?.supabaseUrl ??
-    process.env.EXPO_PUBLIC_SUPABASE_URL ??
-    '';
-  const supabaseAnonKey =
-    Constants.expoConfig?.extra?.supabaseAnonKey ??
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-    '';
-
-  if (supabaseUrl && supabaseAnonKey) {
-    try {
-      getLmewSupabase();
-    } catch {
-      initLmewSupabase({
-        supabaseUrl,
-        supabaseAnonKey,
-        authStorage: ExpoSecureStoreAdapter,
-        autoRefreshToken: true,
-        persistSession: true,
-      });
-    }
-  }
-  return null;
-}
 
 function homeForRole(role: UserRole) {
   if (role === 'customer') return '/(customer)/home';
@@ -95,10 +62,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    void loadProfile().then(() => {
-      const current = useAuthStore.getState().profile;
-      if (current?.id) void registerPushToken(current.id);
-    });
+    void loadProfile()
+      .then(() => {
+        const current = useAuthStore.getState().profile;
+        if (current?.id) void registerPushToken(current.id);
+      })
+      .catch(() => undefined);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
@@ -106,12 +75,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         setProfile(null);
         return;
       }
+      const current = useAuthStore.getState().profile;
+      if (!current || current.id !== nextSession.user.id) setLoading(true);
       // Defer the profile query. Awaiting Supabase inside this callback can deadlock the auth client.
       setTimeout(() => {
-        void loadProfile().then(() => {
-          const current = useAuthStore.getState().profile;
-          if (current?.id) void registerPushToken(current.id);
-        });
+        void loadProfile()
+          .then(() => {
+            const current = useAuthStore.getState().profile;
+            if (current?.id) void registerPushToken(current.id);
+          })
+          .catch(() => undefined);
       }, 0);
     });
 
@@ -152,8 +125,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (session && !profile) {
+      const atRoot = segments.length === 0 || segments[0] === 'index';
+      if (!atRoot) router.replace('/');
+      return;
+    }
+
     if (!session || !profile) return;
     const home = homeForRole(profile.role);
+    if (group === 'paystack') {
+      if (profile.role !== 'customer') router.replace(home);
+      return;
+    }
     const allowed = groupForRole(profile.role);
     if (group !== allowed) router.replace(home);
   }, [session, isLoading, segments, profile, router]);
@@ -166,7 +149,6 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <PaperProvider theme={lmewMobileTheme}>
         <StatusBar style="light" />
-        <InitSupabase />
         <AuthGuard>
           <Stack screenOptions={header}>
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -175,6 +157,7 @@ export default function RootLayout() {
             <Stack.Screen name="(technician)" options={{ headerShown: false }} />
             <Stack.Screen name="(supervisor)" options={{ headerShown: false }} />
             <Stack.Screen name="portal" options={{ title: 'Web portal' }} />
+            <Stack.Screen name="paystack" options={{ headerShown: false }} />
           </Stack>
         </AuthGuard>
       </PaperProvider>

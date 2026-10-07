@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { friendlyError } from '../../src/lib/format';
 import { useAuthStore } from '../../src/store/authStore';
 import { BrandLockup } from '../../src/components/BrandMark';
 import { Notice } from '../../src/components/ui';
-import { ui } from '../../src/theme';
+import { palette, ui } from '../../src/theme';
 
 export default function LoginScreen() {
   const profileError = useAuthStore((s) => s.profileError);
@@ -31,9 +31,14 @@ export default function LoginScreen() {
     }
     setLoading(true);
     setError(null);
-    const { error: authError } = await db().auth.signInWithPassword(parsed.data);
-    setLoading(false);
-    if (authError) setError(friendlyError(authError.message));
+    try {
+      const { error: authError } = await db().auth.signInWithPassword(parsed.data);
+      if (authError) setError(friendlyError(authError.message));
+    } catch (err) {
+      setError(friendlyError(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,11 +52,18 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={ui.pad} keyboardShouldPersistTaps="handled">
           <Text style={ui.muted}>Sign in to track repairs, jobs, and payments.</Text>
           {session && !profile ? (
-            <>
-              <Notice tone="error" text={profileError ?? 'Your profile could not be loaded.'} />
-              <Button mode="contained" onPress={() => void loadProfile()}>Try again</Button>
-              <Button mode="text" onPress={signOut}>Sign out</Button>
-            </>
+            profileError ? (
+              <>
+                <Notice tone="error" text={profileError} />
+                <Button mode="contained" onPress={() => void loadProfile()}>Try again</Button>
+                <Button mode="text" onPress={signOut}>Sign out</Button>
+              </>
+            ) : (
+              <View style={{ alignItems: 'center', gap: 12, paddingVertical: 24 }}>
+                <ActivityIndicator color={palette.primary} />
+                <Text style={ui.muted}>Loading your profile…</Text>
+              </View>
+            )
           ) : (
             <>
               <TextInput label="Email" autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} mode="outlined" />

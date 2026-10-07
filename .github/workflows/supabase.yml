@@ -36,6 +36,7 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_ID"
           supabase db push
           supabase functions deploy create-paystack-payment
+          supabase functions deploy verify-paystack-payment
           supabase functions deploy paystack-webhook
           supabase functions deploy generate-pdf
           supabase functions deploy send-notification

@@ -5,6 +5,7 @@ import { RegisterSchema } from '@lmew/shared-types';
 import { db } from '../../src/lib/db';
 import { friendlyError } from '../../src/lib/format';
 import { FormScreen, Notice } from '../../src/components/ui';
+import { BrandInline } from '../../src/components/BrandMark';
 import { ui } from '../../src/theme';
 
 const fields = [
@@ -66,7 +67,8 @@ export default function RegisterScreen() {
   };
 
   return (
-    <FormScreen>
+    <FormScreen topInset>
+      <BrandInline />
       <Text style={ui.muted}>Customers can register here. Staff accounts are issued by an administrator.</Text>
       {fields.map((field) => (
         <TextInput

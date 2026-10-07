@@ -31,6 +31,7 @@ export const ServiceRequestDetail: React.FC = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
   const [lines, setLines] = useState<Line[]>([{ description: 'Labour', quantity: 1, unit_price: 0, inventory_item_id: null }]);
   const [files, setFiles] = useState<Attachment[]>([]);
   const canQuote = can('quotations.create');
@@ -88,14 +89,18 @@ export const ServiceRequestDetail: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-request', id] });
   };
   const assignTech = async (technicianId: string, supervisorId: string) => {
-    const { error: insertError } = await db().from('work_orders').insert({
-      service_request_id: id,
-      assigned_to: technicianId,
-      supervisor_id: supervisorId || null,
-      created_by: profile?.id,
+    if (assigning) return;
+    setAssigning(true);
+    const { data, error: assignError } = await db().rpc('assign_request_technician', {
+      p_request: id,
+      p_technician: technicianId,
+      p_supervisor: supervisorId || null,
     });
-    setError(insertError?.message ?? null);
-    setSuccess(insertError ? null : 'Technician assigned');
+    setAssigning(false);
+    const created = Boolean(data && typeof data === 'object' && 'created' in data && data.created);
+    setError(assignError?.message ?? null);
+    setSuccess(assignError ? null : created ? 'Technician assigned' : 'Technician updated');
+    if (!assignError) queryClient.invalidateQueries({ queryKey: ['admin-request', id] });
   };
   const sendMessage = async () => {
     if (!profile || !message.trim()) return;
@@ -106,24 +111,20 @@ export const ServiceRequestDetail: React.FC = () => {
   };
   const saveQuote = async (send: boolean) => {
     if (!profile) return;
-    const created = await db().from('quotations').insert({
-      service_request_id: id,
-      created_by: profile.id,
-      status: 'draft',
-    }).select('id').single();
-    if (created.error || !created.data) return setError(created.error?.message ?? 'Could not create quotation');
-    const items = await db().from('quotation_items').insert(lines.filter((line) => line.description).map((line) => ({
-      quotation_id: created.data.id,
-      description: line.description,
-      quantity: line.quantity,
-      unit_price: line.unit_price,
-      inventory_item_id: line.inventory_item_id,
-    })));
-    if (items.error) return setError(items.error.message);
-    if (send) {
-      const sent = await db().from('quotations').update({ status: 'sent' }).eq('id', created.data.id);
-      if (sent.error) return setError(sent.error.message);
-    }
+    const items = lines.filter((line) => line.description.trim());
+    if (!items.length) return setError('Add a line before saving the quotation.');
+    const saved = await db().rpc('save_request_quotation', {
+      p_service_request_id: id,
+      p_items: items.map((line) => ({
+        description: line.description,
+        quantity: line.quantity,
+        unit_price: line.unit_price,
+        inventory_item_id: line.inventory_item_id,
+      })),
+      p_send: send,
+      p_replace_header: false,
+    });
+    if (saved.error || !saved.data) return setError(saved.error?.message ?? 'Could not save quotation');
     setSuccess(send ? 'Quotation sent' : 'Quotation saved as draft');
     setError(null);
     queryClient.invalidateQueries({ queryKey: ['admin-request', id] });
@@ -166,7 +167,7 @@ export const ServiceRequestDetail: React.FC = () => {
                 </select>
               </Field>
             </div>
-            {canAssignTech ? <AssignForm technicians={query.data?.technicians ?? []} supervisors={query.data?.supervisors ?? []} onAssign={assignTech} /> : null}
+            {canAssignTech ? <AssignForm technicians={query.data?.technicians ?? []} supervisors={query.data?.supervisors ?? []} disabled={assigning} onAssign={assignTech} /> : null}
           </Card>
           <div className="grid gap-3 lg:grid-cols-2">
             <Card title="Timeline">
@@ -271,7 +272,7 @@ function updateLine(lines: Line[], setLines: (lines: Line[]) => void, index: num
   setLines(next);
 }
 
-function AssignForm({ technicians, supervisors, onAssign }: { technicians: { id: string; full_name: string }[]; supervisors: { id: string; full_name: string }[]; onAssign: (technicianId: string, supervisorId: string) => void }) {
+function AssignForm({ technicians, supervisors, disabled, onAssign }: { technicians: { id: string; full_name: string }[]; supervisors: { id: string; full_name: string }[]; disabled?: boolean; onAssign: (technicianId: string, supervisorId: string) => void }) {
   const [technicianId, setTechnicianId] = useState('');
   const [supervisorId, setSupervisorId] = useState('');
   return (
@@ -288,7 +289,7 @@ function AssignForm({ technicians, supervisors, onAssign }: { technicians: { id:
           {supervisors.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
         </select>
       </Field>
-      <div className="flex items-end"><Button variant="secondary" onClick={() => technicianId && onAssign(technicianId, supervisorId)}>Assign technician</Button></div>
+      <div className="flex items-end"><Button variant="secondary" disabled={disabled} onClick={() => technicianId && !disabled && onAssign(technicianId, supervisorId)}>{disabled ? 'Assigning…' : 'Assign technician'}</Button></div>
     </div>
   );
 }

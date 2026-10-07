@@ -10,7 +10,7 @@
     <div class="flex flex-wrap items-center gap-2">
       <AppBadge :status="query.data.value.status" />
     </div>
-    <AppCard title="Add line">
+    <AppCard v-if="!isSupplier && query.data.value.status === 'draft'" title="Add line">
       <form class="grid gap-3 md:grid-cols-5" @submit.prevent="addLine">
         <AppField label="Part">
           <select v-model="inventoryItemId" class="field-input">
@@ -25,7 +25,11 @@
       </form>
     </AppCard>
     <AppCard title="Order actions">
-      <div class="flex flex-wrap items-end gap-2">
+      <div v-if="isSupplier" class="flex flex-wrap items-end gap-2">
+        <AppButton v-if="query.data.value.status === 'sent'" :disabled="busy" @click="setSupplierStatus('acknowledged')">Acknowledge</AppButton>
+        <AppButton v-if="query.data.value.status === 'sent' || query.data.value.status === 'acknowledged'" variant="secondary" :disabled="busy" @click="setSupplierStatus('shipped')">Mark shipped</AppButton>
+      </div>
+      <div v-else class="flex flex-wrap items-end gap-2">
         <AppField label="Status">
           <select v-model="status" class="field-input">
             <option v-for="option in statuses" :key="option" :value="option">{{ statusLabel(option) }}</option>
@@ -69,7 +73,7 @@ import SkeletonRows from '../components/SkeletonRows.vue';
 import EmptyState from '../components/EmptyState.vue';
 import SimpleTable from '../components/SimpleTable.vue';
 
-const statuses = ['draft', 'sent', 'acknowledged', 'shipped', 'received', 'cancelled'];
+const statuses = ['draft', 'sent', 'acknowledged', 'shipped', 'cancelled'];
 const route = useRoute();
 const description = ref('');
 const inventoryItemId = ref('');
@@ -83,7 +87,8 @@ const busy = ref(false);
 const items = ref<{ id: string; description: string; quantity: number; unit_cost: number; line_total: number; inventory_item_id: string | null }[]>([]);
 const queryClient = useQueryClient();
 const auth = useAuthStore();
-const backTo = computed(() => (auth.profile?.role === 'supplier' ? '/my-orders' : '/purchase-orders'));
+const isSupplier = computed(() => auth.profile?.role === 'supplier');
+const backTo = computed(() => (isSupplier.value ? '/my-orders' : '/purchase-orders'));
 
 const query = useQuery({
   queryKey: ['po', route.params.id],
@@ -122,7 +127,22 @@ async function addLine() {
   if (!insertError) queryClient.invalidateQueries({ queryKey: ['po', route.params.id] });
 }
 
+async function setSupplierStatus(next: 'acknowledged' | 'shipped') {
+  busy.value = true;
+  const { error: updateError } = await db().from('purchase_orders').update({ status: next }).eq('id', route.params.id);
+  busy.value = false;
+  note(updateError?.message ?? (next === 'shipped' ? 'Order marked shipped.' : 'Order acknowledged.'), !updateError);
+  if (!updateError) {
+    status.value = next;
+    queryClient.invalidateQueries({ queryKey: ['po', route.params.id] });
+  }
+}
+
 async function saveStatus() {
+  if (status.value === 'received') {
+    note('Use Receive into stock so the lines are posted to inventory.', false);
+    return;
+  }
   if (status.value === 'cancelled') {
     const ok = await confirm({ title: 'Cancel order', description: 'Cancel this purchase order?', confirmLabel: 'Cancel order' });
     if (!ok) return;

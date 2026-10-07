@@ -49,9 +49,10 @@ export const Payments: React.FC = () => {
       tone: status === 'refunded' ? 'danger' : 'primary',
     });
     if (!ok) return;
-    const { error: updateError } = await db().from('payments').update({ status, paid_at: new Date().toISOString() }).eq('id', id);
-    setError(updateError?.message ?? null);
-    setSuccess(updateError ? null : status === 'refunded' ? 'Payment refunded.' : 'Payment verified.');
+    const { data, error: updateError } = await db().from('payments').update({ status, paid_at: new Date().toISOString() }).eq('id', id).select('id');
+    const failure = updateError?.message ?? (data?.length ? null : 'That payment could not be updated.');
+    setError(failure);
+    setSuccess(failure ? null : status === 'refunded' ? 'Payment refunded.' : 'Payment verified.');
     queryClient.invalidateQueries({ queryKey: ['payments'] });
   };
   const record = async (event: React.FormEvent) => {
@@ -64,6 +65,7 @@ export const Payments: React.FC = () => {
     const { error: insertError } = await db().from('payments').insert({
       invoice_id: form.invoice_id,
       amount: Number(form.amount),
+      currency: invoiceById.get(form.invoice_id)?.currency ?? 'KES',
       method: form.method,
       status: 'confirmed',
       paid_at: new Date().toISOString(),
